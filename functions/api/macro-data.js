@@ -9,15 +9,16 @@ export async function onRequest(context) {
   }
 
   const reportName = reportMap[report]
-  if (!reportName) return r([])
+  if (!reportName) return r({ macro: [], shIndex: [] })
 
   try {
+    // Fetch macro data
     const url = `http://datacenter-web.eastmoney.com/api/data/v1/get?reportName=${reportName}&columns=ALL&pageSize=300&pageNumber=1&sortColumns=REPORT_DATE&sortTypes=1`
     const res = await fetch(url, {
       headers: { 'User-Agent': 'Mozilla/5.0', Referer: 'https://data.eastmoney.com/' },
     })
     const json = await res.json()
-    const data = (json?.result?.data || []).map((d) => ({
+    const macro = (json?.result?.data || []).map((d) => ({
       date: (d.TIME || d.REPORT_DATE || '').replace('年', '-').replace('月份', '').replace('月', '').slice(0, 7),
       m2: parseFloat(d.BASIC_CURRENCY) / 10000 || 0,
       m1: parseFloat(d.CURRENCY) / 10000 || 0,
@@ -31,9 +32,31 @@ export async function onRequest(context) {
       reserveChange: parseFloat(d.CHANGE_RATE_B) || 0,
       shNext: parseFloat(d.NEXT_SH_RATE) || 0,
     })).filter(d => d.date && d.date.length === 7)
-    return r(data)
+
+    // Fetch Shanghai Composite monthly from KV cache (already daily data aggregated)
+    let shMonthly = []
+    try {
+      const kv = context.env.KLINE_CACHE
+      if (kv) {
+        const cached = await kv.get('kline:sh000001', 'json')
+        if (cached && Array.isArray(cached)) {
+          // Aggregate daily to monthly (last close of each month)
+          const monthlyMap = {}
+          for (const d of cached) {
+            const day = d.day || d.date || ''
+            const month = day.slice(0, 7)
+            if (month && month.length === 7) {
+              monthlyMap[month] = { date: month, shClose: parseFloat(d.close) || 0 }
+            }
+          }
+          shMonthly = Object.values(monthlyMap).sort((a, b) => a.date.localeCompare(b.date))
+        }
+      }
+    } catch(e) {}
+
+    return r({ macro, shIndex: shMonthly })
   } catch (e) {
-    return r([])
+    return r({ macro: [], shIndex: [] })
   }
 }
 
