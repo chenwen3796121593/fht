@@ -17,7 +17,7 @@ export function useMarketQuotes() {
     const fetchAll = async () => {
       try {
         const syms = ITEMS.map(q => q.symbol).join(',')
-        const res = await fetch('/api/data?list=' + syms)
+        const res = await fetch('/api/data?list=' + syms + '&t=' + Date.now())
         const json = await res.json()
         const lines = (json.data || '').split('\n').filter(l => l.trim())
         const result = {}

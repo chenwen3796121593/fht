@@ -36,7 +36,7 @@ export default function NewsPage({ onNavigate }) {
 
   return (
     <div className="overflow-y-auto bg-[#0A0F14] h-full">
-      <TopBar active="news" onHome={() => onNavigate('home')} onNews={() => onNavigate('news')} onChat={() => onNavigate('chat')} onAlerts={() => onNavigate('alerts')} />
+      <TopBar active="news" onHome={() => onNavigate('home')} onStocks={() => onNavigate('dashboard')} onNews={() => onNavigate('news')} onChat={() => onNavigate('chat')} onAlerts={() => onNavigate('alerts')} />
 
       {/* Tabs */}
       <div className="px-4 pt-2 pb-1 flex items-center justify-between">

@@ -63,14 +63,21 @@ export default function useMarketData(extraSymbols = []) {
     const all = [...base, ...extraSymbols.filter(s => !base.includes(s))]
     const symbols = all.join(',')
     try {
-      const res = await fetch(PROXY_URL + symbols)
+      const res = await fetch(PROXY_URL + symbols + '&t=' + Date.now())
       const json = await res.json()
       const text = json.data || ''
       const lines = text.split('\n').filter((l) => l.trim())
 
       const result = {}
       // Process all items
-      const allItems = [...MARKET_ITEMS, ...extraSymbols.map(s => ({ symbol: s, name: s, type: 'stock' }))]
+      const allItems = [...MARKET_ITEMS, ...extraSymbols.map(s => {
+        let sym = s
+        if (!sym.startsWith('sh')&&!sym.startsWith('sz')&&!sym.startsWith('bj')) {
+          if (sym.startsWith('6')) sym = 'sh' + sym
+          else if (sym.startsWith('0')||sym.startsWith('3')) sym = 'sz' + sym
+        }
+        return { symbol: sym, name: s, type: 'stock' }
+      })]
       for (const item of allItems) {
         const line = lines.find((l) => l.includes(item.symbol))
         if (!line) continue

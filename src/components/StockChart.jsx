@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 
-const rangeLabels = ['分时', '日线', '周线', '月线', '全部']
+const rangeLabels = ['日线', '全部']
 
 function fmtPrice(v, symbol) {
   if (!v) return '--'
@@ -13,14 +13,14 @@ function fmtPrice(v, symbol) {
   return '$' + Number(v).toFixed(2)
 }
 
-function CandleChart({ data, width = 310, height = 180 }) {
-  const p = { top: 10, right: 8, bottom: 20, left: 52 }
-  const cw = width - p.left - p.right, ch = height - p.top - p.bottom
-  const nums = data.map(d => [d.open, d.close, d.high, d.low]).flat()
-  const lo = Math.min(...nums), hi = Math.max(...nums)
-  const range = hi - lo || 1
-  const toY = (v) => p.top + ((hi - v) / range) * ch
-  const barW = Math.max(1, (cw / data.length) * 0.7)
+const CandleChart = React.memo(({ data, width = 310, height = 180 }) => {
+  const p = useMemo(() => ({ top: 10, right: 8, bottom: 20, left: 52 }), [])
+  const { cw, ch, toY, barW, lo, hi, range } = useMemo(() => {
+    const cw = width - p.left - p.right, ch = height - p.top - p.bottom
+    const nums = data.flatMap(d => [d.open, d.close, d.high, d.low])
+    const lo = Math.min(...nums), hi = Math.max(...nums), range = hi - lo || 1
+    return { cw, ch, lo, hi, range, toY: (v) => p.top + ((hi - v) / range) * ch, barW: Math.max(1, (cw / data.length) * 0.7) }
+  }, [data, width, p])
 
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
@@ -35,22 +35,16 @@ function CandleChart({ data, width = 310, height = 180 }) {
         )
       })}
       {data.map((d, i) => {
-        const x = p.left + i * (cw / data.length)
-        const up = d.close >= d.open, color = up ? '#EF4444' : '#22C55E'
+        const x = p.left + i * (cw / data.length), up = d.close >= d.open, color = up ? '#EF4444' : '#22C55E'
         const y1 = toY(Math.max(d.open, d.close)), y2 = toY(Math.min(d.open, d.close))
         const h = Math.max(1, y2 - y1), cx = x + barW / 2
-        return (
-          <g key={i}>
-            <line x1={cx} y1={toY(d.high)} x2={cx} y2={toY(d.low)} stroke={color} strokeWidth={1} />
-            <rect x={x + (cw / data.length - barW) / 2} y={y1} width={barW} height={h} fill={color} />
-          </g>
-        )
+        return <g key={i}><line x1={cx} y1={toY(d.high)} x2={cx} y2={toY(d.low)} stroke={color} strokeWidth={1} /><rect x={x + (cw / data.length - barW) / 2} y={y1} width={barW} height={h} fill={color} /></g>
       })}
     </svg>
   )
-}
+})
 
-function VolChart({ data, width = 310, height = 44 }) {
+const VolChart = React.memo(function VolChart({ data, width = 310, height = 44 }) {
   const maxV = Math.max(...data.map(d => d.volume || 0), 1)
   const barW = Math.max(1, (width - 16) / data.length * 0.7)
   return (
@@ -65,10 +59,10 @@ function VolChart({ data, width = 310, height = 44 }) {
       })}
     </svg>
   )
-}
+})
 
 export default function StockChart({ symbol, name, priceData }) {
-  const [range, setRange] = useState('1月')
+  const [range, setRange] = useState('日线')
   const [kdata, setKdata] = useState(null)
   const [loading, setLoading] = useState(false)
 
@@ -77,7 +71,15 @@ export default function StockChart({ symbol, name, priceData }) {
     setLoading(true)
     setKdata(null)
 
-    const cacheKey = `kline_${symbol}_${range}`
+    // Normalize symbol: add market prefix for Chinese stocks
+    let apiSymbol = symbol
+    if (!apiSymbol.startsWith('sh') && !apiSymbol.startsWith('sz') && !apiSymbol.startsWith('bj') && !apiSymbol.startsWith('hf_') && !apiSymbol.startsWith('nf_')) {
+      if (apiSymbol.startsWith('6')) apiSymbol = 'sh' + apiSymbol
+      else if (apiSymbol.startsWith('0') || apiSymbol.startsWith('3')) apiSymbol = 'sz' + apiSymbol
+      else if (apiSymbol.startsWith('8') || apiSymbol.startsWith('4')) apiSymbol = 'bj' + apiSymbol
+    }
+
+    const cacheKey = `kline_${apiSymbol}_${range}`
     const today = new Date().toDateString()
 
     // Try cache first
@@ -86,12 +88,13 @@ export default function StockChart({ symbol, name, priceData }) {
       try {
         const { date, data } = JSON.parse(cached)
         if (date === today && data?.length > 0) {
-          if (!cancelled) { setKdata(data); setLoading(false); return }
+          if (!cancelled) { setKdata(range === '全部' ? data : data.slice(-30)); setLoading(false); return }
         }
       } catch (e) {}
     }
 
-    fetch(`/api/kline?symbol=${symbol}&len=90`)
+    const allParam = range === '全部' ? '&all=1' : ''
+    fetch(`/api/kline?symbol=${apiSymbol}${allParam}`)
       .then(r => r.json())
       .then(json => {
         if (cancelled) return
@@ -101,10 +104,17 @@ export default function StockChart({ symbol, name, priceData }) {
           high: parseFloat(d.high), low: parseFloat(d.low),
           volume: parseFloat(d.volume) || 0,
         })).filter(d => d.open && d.close)
-        const toShow = parsed.slice(-90)
+        const SAMPLE_MAX = 300
+        let toShow = parsed
+        if (range !== '全部') {
+          toShow = parsed.slice(-30)
+        } else if (parsed.length > SAMPLE_MAX) {
+          const step = Math.ceil(parsed.length / SAMPLE_MAX)
+          toShow = parsed.filter((_, i) => i % step === 0 || i === parsed.length - 1)
+        }
         if (toShow.length > 0) {
           setKdata(toShow)
-          localStorage.setItem(cacheKey, JSON.stringify({ date: today, data: parsed }))
+          try { if (parsed.length <= 300 || range !== '全部') localStorage.setItem(cacheKey, JSON.stringify({ date: today, data: parsed.slice(-200) })) } catch(e) {}
         }
         setLoading(false)
       })
@@ -151,7 +161,7 @@ export default function StockChart({ symbol, name, priceData }) {
             <span className="text-sm text-[#4D545C]">暂无 K 线数据</span>
           </div>
         )}
-        {kdata && <CandleChart data={kdata} />}
+        {kdata && kdata.length > 0 && <CandleChart data={kdata} />}
         <div className="text-[11px] text-[#4D545C] mt-1 mb-1">成交量</div>
         {kdata && <VolChart data={kdata} />}
       </div>

@@ -26,7 +26,7 @@ function SectorFlow() {
     async function fetchData() {
       try {
         // Try CF format first (single request)
-        const res = await fetch('/api/flow')
+        const res = await fetch('/api/flow?t=' + Date.now())
         const json = await res.json()
         if (!cancelled) {
           // CF format: {data: [...], outData: [...]}
@@ -101,7 +101,7 @@ export default function HomePage({ onNavigate }) {
   useEffect(() => {
     let cancelled = false
     const fetchBreadth = async () => {
-      try { const res = await fetch('/api/breadth'); const data = await res.json(); if (!cancelled && data.total > 0) setBreadth(data) } catch(e) {}
+      try { const res = await fetch('/api/breadth?t=' + Date.now()); const data = await res.json(); if (!cancelled && data.total > 0) setBreadth(data) } catch(e) {}
     }
     fetchBreadth()
     const t = setInterval(fetchBreadth, 30000)

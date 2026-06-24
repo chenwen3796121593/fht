@@ -28,9 +28,12 @@ export default function ChatPage({ onNavigate }) {
     if (initRef.current) return; initRef.current = true
     getSB().then(async (sb) => {
       setConnected(true)
-      const dayAgo = new Date(Date.now() - 86400000).toISOString()
-      const { data } = await sb.from('messages').select('*').gte('created_at', dayAgo).order('created_at', { ascending: true })
-      if (data) { setMsgs(data.map(m => ({ id: m.id, user: m.username, text: m.text, voice_url: m.voice_url, time: fmtTime(m.created_at) }))); setHistoryLoaded(true) }
+      try {
+        const dayAgo = new Date(Date.now() - 86400000).toISOString()
+        const { data } = await sb.from('messages').select('*').gte('created_at', dayAgo).order('created_at', { ascending: false }).limit(50)
+        if (data) { setMsgs(data.reverse().map(m => ({ id: m.id, user: m.username, text: m.text, voice_url: m.voice_url, time: fmtTime(m.created_at) }))) }
+      } catch(e) {}
+      setHistoryLoaded(true)
       sb.channel('chat-room').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
         const m = payload.new; setMsgs(prev => { if (prev.find(p => p.id === m.id)) return prev; return [...prev, { id: m.id, user: m.username, text: m.text, voice_url: m.voice_url, time: fmtTime(m.created_at) }] })
       }).subscribe()

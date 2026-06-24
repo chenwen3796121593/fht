@@ -11,16 +11,35 @@ export default function Dashboard({ onNavigate }) {
     return saved ? JSON.parse(saved) : { symbol: 'hf_XAU', name: '现货黄金' }
   })
   const [customStocks, setCustomStocks] = useState(() => {
-    const saved = localStorage.getItem('fh_custom')
-    return saved ? JSON.parse(saved) : []
+    try {
+      const saved = JSON.parse(localStorage.getItem('fh_custom') || '[]')
+      // Auto-fix old entries without prefix
+      let changed = false
+      const fixed = (Array.isArray(saved) ? saved : []).map(s => {
+        let sym = s?.symbol || ''
+        if (sym && !sym.startsWith('sh') && !sym.startsWith('sz') && !sym.startsWith('bj') && !sym.startsWith('hf_') && !sym.startsWith('nf_')) {
+          if (sym.startsWith('6')) { sym = 'sh' + sym; changed = true }
+          else if (sym.match(/^[03]/)) { sym = 'sz' + sym; changed = true }
+        }
+        return { ...s, symbol: sym }
+      })
+      if (changed) { try { localStorage.setItem('fh_custom', JSON.stringify(fixed)) } catch(e) {} }
+      return fixed
+    } catch(e) { return [] }
   })
-  const customSymbols = customStocks.map(s => s.symbol)
-  const { prices } = useMarketData(customSymbols)
+
+  const customSymbols = customStocks.map(s => s.symbol).filter(Boolean)
+  const { prices, marketCards } = useMarketData(customSymbols)
   const quotes = useMarketQuotes()
+  const stockKeys = Object.keys(prices || {}).filter(k => !['sh000001','sz399001','hf_XAU','hf_XAG','hf_CL','hf_HG','hf_AHD'].includes(k))
 
   const handleSelect = (s) => { setSelected(s); localStorage.setItem('fh_selected', JSON.stringify(s)) }
   const handleAddStock = (s) => {
+    if (!s) return
     setCustomStocks(prev => { const next = [...prev, s]; localStorage.setItem('fh_custom', JSON.stringify(next)); return next })
+  }
+  const handleRemoveStock = (s) => {
+    setCustomStocks(prev => { const next = prev.filter(x => x.symbol !== s.symbol); localStorage.setItem('fh_custom', JSON.stringify(next)); return next })
   }
 
   return (
@@ -31,7 +50,7 @@ export default function Dashboard({ onNavigate }) {
         <MarketBar quotes={quotes} />
       </div>
 
-      <Watchlist selected={selected.symbol} onSelect={handleSelect} prices={prices} customStocks={customStocks} onAddStock={handleAddStock} />
+      <Watchlist selected={selected.symbol} onSelect={handleSelect} prices={prices} customStocks={customStocks} onAddStock={handleAddStock} onRemoveStock={handleRemoveStock} />
       <StockChart symbol={selected.symbol} name={selected.name} priceData={prices[selected.symbol]} />
     </div>
   )
