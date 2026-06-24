@@ -16,7 +16,7 @@ export default function TopBar({ onNews, onAlerts, onChat, onStocks, onHome, act
   )
 
   return (
-    <div className="flex items-center gap-1.5 px-4 py-3 sticky top-0 bg-[#0A0F14] z-10">
+    <div className="flex items-center gap-1.5 px-4 pt-4 pb-3 sticky top-0 bg-[#0A0F14] z-10">
       <Flame size={22} className="text-orange-400" />
       <span className="text-[10px] text-orange-400 font-medium bg-[#1A1F2E] px-1.5 py-0.5 rounded">烽火台</span>
       <span className="text-[11px] font-medium text-[#8D949E] ml-1">光头Chen</span>

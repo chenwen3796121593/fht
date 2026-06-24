@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import TopBar from '../components/TopBar'
-import { MessageCircle, Mic, Send, MicOff } from 'lucide-react'
+import { MessageCircle, Mic, Send } from 'lucide-react'
 
 const SUPABASE_URL = 'https://fxpxlobftrdlswyhrnhv.supabase.co'
 const SUPABASE_KEY = 'sb_publishable_nRjPbFK5D4BRzyJyh_-ahw_mivVK7Zq'
@@ -26,7 +26,9 @@ export default function ChatPage({ onNavigate }) {
 
   useEffect(() => {
     if (initRef.current) return; initRef.current = true
-    getSB().then(async (sb) => {
+    let sb = null
+    getSB().then(async (client) => {
+      sb = client
       setConnected(true)
       try {
         const dayAgo = new Date(Date.now() - 86400000).toISOString()
@@ -38,7 +40,7 @@ export default function ChatPage({ onNavigate }) {
         const m = payload.new; setMsgs(prev => { if (prev.find(p => p.id === m.id)) return prev; return [...prev, { id: m.id, user: m.username, text: m.text, voice_url: m.voice_url, time: fmtTime(m.created_at) }] })
       }).subscribe()
     })
-    return () => { if (supabase) supabase.removeAllChannels() }
+    return () => { if (sb) { sb.removeAllChannels(); sb = null } }
   }, [])
 
   useEffect(() => { if (historyLoaded) msgEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [msgs.length, historyLoaded])
