@@ -23,8 +23,8 @@ export default function TopBar({ onNews, onAlerts, onChat, onStocks, onHome, act
       <div className="flex-1" />
       {btn(House, onHome, active === 'home')}
       {btn(TrendingUp, onStocks, active === 'dashboard')}
-      {btn(MessageCircle, onChat, active === 'chat')}
       {btn(Newspaper, onNews, active === 'news')}
+      {btn(MessageCircle, onChat, active === 'chat')}
       <button onClick={onAlerts} className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm relative transition-colors ${active === 'alerts' ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E] hover:text-[#F0F2F5]'}`}>
         <Bell size={ICON_SZ} />
         {showBadge && <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 bg-[#EF4444] rounded-full" />}
