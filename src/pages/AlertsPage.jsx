@@ -9,14 +9,23 @@ function loadAlerts() {
 }
 function saveAlerts(a) { localStorage.setItem('fh_alerts', JSON.stringify(a)) }
 
-const WATCH_LIST = [
+const DEFAULT_WATCH = [
   { symbol: 'hf_XAU', name: '现货黄金' },
   { symbol: 'hf_XAG', name: '现货白银' },
   { symbol: 'hf_CL', name: '国际原油' },
   { symbol: 'hf_HG', name: 'COMEX铜' },
+  { symbol: 'hf_AHD', name: 'LME铝' },
 ]
 
+function getWatchList() {
+  try {
+    const custom = JSON.parse(localStorage.getItem('fh_custom') || '[]')
+    return [...DEFAULT_WATCH, ...custom]
+  } catch(e) { return DEFAULT_WATCH }
+}
+
 export default function AlertsPage({ onNavigate }) {
+  const watchList = getWatchList()
   const [alerts, setAlerts] = useState(loadAlerts)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ symbol: 'hf_XAU', name: '现货黄金', type: 'pct', value: 5, methods: ['push'] })
@@ -62,11 +71,11 @@ export default function AlertsPage({ onNavigate }) {
               className="bg-[#1A2129] rounded-md px-3 py-2 text-sm text-[#F0F2F5] outline-none"
               value={form.symbol}
               onChange={e => {
-                const s = WATCH_LIST.find(w => w.symbol === e.target.value)
+                const s = watchList.find(w => w.symbol === e.target.value)
                 setForm({ ...form, symbol: e.target.value, name: s?.name || '' })
               }}
             >
-              {WATCH_LIST.map(w => <option key={w.symbol} value={w.symbol}>{w.name}</option>)}
+              {watchList.map(w => <option key={w.symbol} value={w.symbol}>{w.name}</option>)}
             </select>
             <div className="flex gap-2">
               <select className="bg-[#1A2129] rounded-md px-3 py-2 text-sm text-[#F0F2F5] outline-none" value={form.type}

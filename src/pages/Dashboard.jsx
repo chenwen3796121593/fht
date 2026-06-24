@@ -4,6 +4,7 @@ import MarketBar, { useMarketQuotes } from '../components/MarketBar'
 import Watchlist from '../components/Watchlist'
 import StockChart from '../components/StockChart'
 import useMarketData from '../hooks/useMarketData'
+import useAlertChecker from '../hooks/useAlertChecker'
 
 export default function Dashboard({ onNavigate }) {
   const [selected, setSelected] = useState(() => {
@@ -29,9 +30,9 @@ export default function Dashboard({ onNavigate }) {
   })
 
   const customSymbols = customStocks.map(s => s.symbol).filter(Boolean)
-  const { prices, marketCards } = useMarketData(customSymbols)
+  const { prices } = useMarketData(customSymbols)
   const quotes = useMarketQuotes()
-  const stockKeys = Object.keys(prices || {}).filter(k => !['sh000001','sz399001','hf_XAU','hf_XAG','hf_CL','hf_HG','hf_AHD'].includes(k))
+  useAlertChecker(prices)
 
   const handleSelect = (s) => { setSelected(s); localStorage.setItem('fh_selected', JSON.stringify(s)) }
   const handleAddStock = (s) => {

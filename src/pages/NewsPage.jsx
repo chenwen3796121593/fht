@@ -44,8 +44,12 @@ export default function NewsPage({ onNavigate }) {
     return () => clearInterval(t)
   }, [fetchAll])
 
-  const all = [...rssNews.stock, ...rssNews.commodity, ...rssNews.macro].sort((a, b) =>
-    new Date(b.pubDate||b.time) - new Date(a.pubDate||a.time))
+  const getStars = (s) => { const m = (s?.title||'').match(/(★+)/); return m ? m[1].length : 0 }
+  const all = [...rssNews.stock, ...rssNews.commodity, ...rssNews.macro].sort((a, b) => {
+    const sa = getStars(a), sb = getStars(b)
+    if (sa !== sb) return sb - sa
+    return new Date(b.pubDate||b.time) - new Date(a.pubDate||a.time)
+  })
   const filtered = tab === '全部' ? all
     : tab === '股票' ? rssNews.stock
     : tab === '商品' ? rssNews.commodity
