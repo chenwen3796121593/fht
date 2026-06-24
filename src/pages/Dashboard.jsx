@@ -52,7 +52,7 @@ export default function Dashboard({ onNavigate }) {
       </div>
 
       <Watchlist selected={selected.symbol} onSelect={handleSelect} prices={prices} customStocks={customStocks} onAddStock={handleAddStock} onRemoveStock={handleRemoveStock} />
-      <StockChart symbol={selected.symbol} name={selected.name} priceData={prices[selected.symbol]} />
+      <StockChart symbol={selected.symbol} name={selected.name} priceData={quotes[selected.symbol] || prices[selected.symbol]} />
     </div>
   )
 }
