@@ -147,7 +147,7 @@ export default function StockChart({ symbol, name, priceData }) {
       }
       setKdata(updated)
     }
-  }, [priceData?.price])
+  }, [priceData?.price, symbol, kdata?.length])
 
   const hasData = !!priceData
   const last = kdata ? kdata[kdata.length - 1] : null

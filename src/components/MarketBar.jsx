@@ -21,6 +21,7 @@ export function useMarketQuotes() {
         const json = await res.json()
         const lines = (json.data || '').split('\n').filter(l => l.trim())
         const result = {}
+        if (lines.length < 2) return // API failed, keep old data
         for (const q of ITEMS) {
           const line = lines.find(l => l.includes(q.symbol))
           if (!line) continue
