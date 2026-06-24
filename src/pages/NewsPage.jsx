@@ -14,7 +14,7 @@ function fmtTime(d) {
 
 export default function NewsPage({ onNavigate }) {
   const [tab, setTab] = useState('全部')
-  const [rssNews, setRssNews] = useState({ stock: [], commodity: [] })
+  const [rssNews, setRssNews] = useState({ stock: [], commodity: [], macro: [] })
   const [loading, setLoading] = useState(true)
 
   const fetchAll = useCallback(async () => {
