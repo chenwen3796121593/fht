@@ -1,0 +1,21 @@
+name: Update K-Line Data
+
+on:
+  schedule:
+    # 每天北京时间 15:30 (UTC 07:30) 收盘后运行
+    - cron: '30 7 * * 1-5'
+  workflow_dispatch:  # 手动触发
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/update-kline.mjs
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_KV_TOKEN: ${{ secrets.CF_KV_TOKEN }}
+          CF_KV_NAMESPACE: d4ecff46f83044c99780cf7837d889c9

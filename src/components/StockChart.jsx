@@ -1,48 +1,23 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 
-const ranges = { '1日': 24, '1周': 7, '1月': 30, '3月': 90, '1年': 252, '全部': 365 }
+const rangeLabels = ['1日', '1周', '1月', '3月', '1年', '全部']
 
-// Estimate base price from symbol name
-function getBasePrice(symbol) {
-  if (symbol.includes('XAU') || symbol.includes('GC')) return 2600
-  if (symbol.includes('XAG') || symbol.includes('SI')) return 31
-  if (symbol.includes('CL')) return 85
-  if (symbol.includes('HG') || symbol.includes('CU')) return 4.5
-  if (symbol.includes('_S') || symbol.includes('豆')) return 1150
-  if (symbol.startsWith('sh') || symbol.startsWith('sz')) return 4000
-  if (symbol.length <= 6 && !symbol.includes('=')) return 100
-  return 100
-}
-
-function generateData(days, symbol) {
-  const data = []
-  let price = getBasePrice(symbol)
-  for (let i = days; i >= 0; i--) {
-    const change = (Math.random() - 0.48) * (price * 0.02)
-    const open = price
-    const close = open + change
-    const high = Math.max(open, close) + Math.random() * (price * 0.01)
-    const low = Math.min(open, close) - Math.random() * (price * 0.01)
-    data.push({ open, close, high, low, volume: Math.round(Math.random() * 50000000 + 10000000) })
-    price = close
-  }
-  return data
-}
-
-function formatPrice(v, symbol) {
-  if (symbol.includes('XAU') || symbol.includes('GC')) return '$' + v.toFixed(1)
-  if (symbol.startsWith('sh') || symbol.startsWith('sz')) return v.toFixed(2)
-  if (symbol.includes('_S')) return v.toFixed(2)
-  if (v >= 1000) return v.toFixed(0)
-  return '$' + v.toFixed(2)
+function fmtPrice(v, symbol) {
+  if (!v) return '--'
+  if (symbol.includes('XAU') || symbol.includes('GC')) return '$' + Number(v).toFixed(1)
+  if (symbol.startsWith('sh') || symbol.startsWith('sz')) return Number(v).toFixed(2)
+  if (symbol.includes('XAG')) return '$' + Number(v).toFixed(2)
+  if (symbol.includes('CL')) return '$' + Number(v).toFixed(2)
+  if (symbol.includes('HG') || symbol.includes('CU')) return '$' + Number(v).toFixed(0)
+  if (v >= 1000) return Number(v).toFixed(0)
+  return '$' + Number(v).toFixed(2)
 }
 
 function CandleChart({ data, width = 310, height = 180 }) {
   const p = { top: 10, right: 8, bottom: 20, left: 52 }
-  const cw = width - p.left - p.right
-  const ch = height - p.top - p.bottom
-  const all = data.flatMap((d) => [d.high, d.low])
-  const lo = Math.min(...all), hi = Math.max(...all)
+  const cw = width - p.left - p.right, ch = height - p.top - p.bottom
+  const nums = data.map(d => [d.open, d.close, d.high, d.low]).flat()
+  const lo = Math.min(...nums), hi = Math.max(...nums)
   const range = hi - lo || 1
   const toY = (v) => p.top + ((hi - v) / range) * ch
   const barW = Math.max(1, (cw / data.length) * 0.7)
@@ -50,7 +25,7 @@ function CandleChart({ data, width = 310, height = 180 }) {
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
       <rect width={width} height={height} fill="#0D1117" rx={6} />
-      {[0, 1, 2, 3, 4].map((i) => {
+      {[0, 1, 2, 3, 4].map(i => {
         const v = lo + (range / 4) * i, y = toY(v)
         return (
           <g key={i}>
@@ -76,31 +51,71 @@ function CandleChart({ data, width = 310, height = 180 }) {
 }
 
 function VolChart({ data, width = 310, height = 44 }) {
-  const maxV = Math.max(...data.map((d) => d.volume))
+  const maxV = Math.max(...data.map(d => d.volume || 0), 1)
   const barW = Math.max(1, (width - 16) / data.length * 0.7)
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
       <rect width={width} height={height} fill="#0D1117" rx={4} />
       {data.map((d, i) => {
-        const h = Math.max(2, (d.volume / maxV) * (height - 8)), up = d.close >= d.open
-        return (
-          <rect key={i} x={8 + i * ((width - 16) / data.length) + ((width - 16) / data.length - barW) / 2}
-            y={height - h} width={barW} height={h}
-            fill={up ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.4)'} />
-        )
+        const h = Math.max(1, ((d.volume || 0) / maxV) * (height - 8))
+        const up = d.close >= d.open
+        return <rect key={i} x={8 + i * ((width - 16) / data.length) + ((width - 16) / data.length - barW) / 2}
+          y={height - h} width={barW} height={h}
+          fill={up ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.4)'} />
       })}
     </svg>
   )
 }
 
 export default function StockChart({ symbol, name, priceData }) {
-  const [range, setRange] = useState('1周')
-  const data = useMemo(() => generateData(ranges[range], symbol), [range, symbol])
-  const last = data[data.length - 1]
+  const [range, setRange] = useState('1月')
+  const [kdata, setKdata] = useState(null)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    setKdata(null)
+
+    const cacheKey = `kline_${symbol}_${range}`
+    const today = new Date().toDateString()
+
+    // Try cache first
+    const cached = localStorage.getItem(cacheKey)
+    if (cached) {
+      try {
+        const { date, data } = JSON.parse(cached)
+        if (date === today && data?.length > 0) {
+          if (!cancelled) { setKdata(data); setLoading(false); return }
+        }
+      } catch (e) {}
+    }
+
+    fetch(`/api/kline?symbol=${symbol}&len=90`)
+      .then(r => r.json())
+      .then(json => {
+        if (cancelled) return
+        const arr = Array.isArray(json) ? json : []
+        const parsed = arr.map(d => ({
+          open: parseFloat(d.open), close: parseFloat(d.close),
+          high: parseFloat(d.high), low: parseFloat(d.low),
+          volume: parseFloat(d.volume) || 0,
+        })).filter(d => d.open && d.close)
+        const toShow = parsed.slice(-90)
+        if (toShow.length > 0) {
+          setKdata(toShow)
+          localStorage.setItem(cacheKey, JSON.stringify({ date: today, data: parsed }))
+        }
+        setLoading(false)
+      })
+      .catch(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [symbol, range])
+
   const hasData = !!priceData
-  const prev = data[data.length - 2]
-  const change = prev && last ? ((last.close - prev.close) / prev.close * 100) : 0
-  const price = formatPrice(last.close, symbol)
+  const last = kdata ? kdata[kdata.length - 1] : null
+  const change = last && kdata && kdata.length > 1
+    ? ((last.close - kdata[0].close) / kdata[0].close * 100) : 0
 
   return (
     <div className="px-4 pb-3">
@@ -110,25 +125,35 @@ export default function StockChart({ symbol, name, priceData }) {
           {hasData ? (
             <div className="flex items-center gap-2 mt-0.5">
               <span className="text-lg font-bold text-[#F0F2F5]">{priceData.formattedPrice}</span>
-              <span className={`text-[13px] font-medium ${(priceData.change||0) >= 0 ? 'text-[#EF4444]' : 'text-[#22C55E]'}`}>
-                {(priceData.change||0) >= 0 ? '+' : ''}{(priceData.change||0).toFixed(2)}%
+              <span className={`text-[13px] font-medium ${(priceData.change || 0) >= 0 ? 'text-[#EF4444]' : 'text-[#22C55E]'}`}>
+                {(priceData.change || 0) >= 0 ? '+' : ''}{(priceData.change || 0).toFixed(2)}%
               </span>
             </div>
           ) : (
-            <div className="text-xs text-[#4D545C] mt-0.5">暂无数据，请输入正确的股票代码</div>
+            <div className="text-xs text-[#4D545C] mt-0.5">暂无数据</div>
           )}
         </div>
         <div className="flex gap-1.5 mb-3">
-          {Object.keys(ranges).map((t) => (
+          {rangeLabels.map(t => (
             <button key={t} onClick={() => setRange(t)}
               className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${
                 range === t ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'
               }`}>{t}</button>
           ))}
         </div>
-        <CandleChart data={data} />
+        {loading && (
+          <div className="w-full h-[180px] bg-[#0D1117] rounded-md flex items-center justify-center">
+            <span className="text-sm text-[#4D545C]">加载中...</span>
+          </div>
+        )}
+        {!loading && !kdata && (
+          <div className="w-full h-[180px] bg-[#0D1117] rounded-md flex items-center justify-center">
+            <span className="text-sm text-[#4D545C]">暂无 K 线数据</span>
+          </div>
+        )}
+        {kdata && <CandleChart data={kdata} />}
         <div className="text-[11px] text-[#4D545C] mt-1 mb-1">成交量</div>
-        <VolChart data={data} />
+        {kdata && <VolChart data={kdata} />}
       </div>
     </div>
   )

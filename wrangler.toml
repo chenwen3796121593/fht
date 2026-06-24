@@ -1,0 +1,6 @@
+name = "fenghuotai"
+compatibility_date = "2025-06-23"
+
+[[kv_namespaces]]
+binding = "KLINE_CACHE"
+id = "d4ecff46f83044c99780cf7837d889c9"

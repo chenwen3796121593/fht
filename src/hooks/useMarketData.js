@@ -9,6 +9,8 @@ const MARKET_ITEMS = [
   { symbol: 'hf_XAG', name: '现货白银', type: 'commodity' },
   { symbol: 'hf_CL', name: '国际原油', type: 'commodity' },
   { symbol: 'hf_HG', name: 'COMEX铜', type: 'commodity' },
+  { symbol: 'hf_AHD', name: 'LME铝', type: 'commodity' },
+  { symbol: 'nf_M0', name: '豆粕', type: 'commodity' },
 ]
 
 function parseSina(data, item) {
@@ -20,11 +22,17 @@ function parseSina(data, item) {
   if ((item.type === 'index' || item.type === 'stock') && parts.length > 5) {
     return {
       name: parts[0],
-      price: parseFloat(parts[3]) || 0,       // parts[3] = current
-      prevClose: parseFloat(parts[2]) || 0,   // parts[2] = previous close
+      price: parseFloat(parts[3]) || 0,       // [3] = current
+      prevClose: parseFloat(parts[2]) || 0,   // [2] = previous close
     }
   }
 
+  // Domestic futures: [5]=prevClose, [6]=current
+  if (item.symbol.startsWith('nf_') && parts.length > 6) {
+    const price = parseFloat(parts[6]) || 0
+    const prevClose = parseFloat(parts[5]) || price
+    return { name: item.name, price, prevClose }
+  }
   // Commodity: current at [0], prev close at [7]
   if (item.type === 'commodity' && parts.length > 7) {
     const price = parseFloat(parts[0]) || 0
@@ -43,18 +51,12 @@ function parseSina(data, item) {
 
 function fmtPrice(symbol, price) {
   if (!price) return '--'
-  // Index: remove decimals
   if (symbol.startsWith('sh') || symbol.startsWith('sz')) return price.toFixed(2)
-  // Gold: 4 digits
   if (symbol === 'hf_XAU') return '$' + price.toFixed(1)
-  // Silver: 2 digits
   if (symbol === 'hf_XAG') return '$' + price.toFixed(2)
-  // Crude: 2 digits
   if (symbol === 'hf_CL') return '$' + price.toFixed(2)
-  // Copper: show as-is
-  if (symbol === 'hf_HG') return '$' + price.toFixed(2)
-  // Soybean
-  if (symbol === 'hf_S') return price.toFixed(2)
+  if (symbol === 'hf_HG' || symbol === 'hf_AHD') return '$' + price.toFixed(1)
+  if (symbol === 'nf_M0') return '¥' + price.toFixed(0)
   return '$' + price.toFixed(2)
 }
 
