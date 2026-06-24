@@ -68,8 +68,9 @@ export default function AlertsPage({ onNavigate }) {
         <div className="px-4 pb-3">
           <div className="bg-[#12161C] border border-[#242B33] rounded-lg p-3.5 flex flex-col gap-3">
             <select
-              className="bg-[#1A2129] rounded-md px-3 py-2 text-sm text-[#F0F2F5] outline-none"
+              className="bg-[#1A2129] rounded-md px-3 py-2 text-sm text-[#F0F2F5] outline-none w-full truncate"
               value={form.symbol}
+              title={form.name}
               onChange={e => {
                 const s = watchList.find(w => w.symbol === e.target.value)
                 setForm({ ...form, symbol: e.target.value, name: s?.name || '' })
