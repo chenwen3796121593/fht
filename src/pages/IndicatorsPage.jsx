@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import TopBar from '../components/TopBar'
 import MarketBar, { useMarketQuotes } from '../components/MarketBar'
+import { TrendingUp, Landmark, DollarSign, Banknote } from 'lucide-react'
 
 function LineChart({ data, lines, width = 170, height = 110 }) {
   const p = { top: 8, right: 30, bottom: 16, left: 32 }
@@ -24,10 +25,10 @@ function LineChart({ data, lines, width = 170, height = 110 }) {
   )
 }
 
-function IndicatorCard({ title, data, lines, rows, loading }) {
+function IndicatorCard({ title, data, lines, rows, loading, icon: Icon }) {
   return (
     <div className="bg-[#12161C] border border-[#242B33] rounded-xl p-2.5 flex flex-col gap-1.5">
-      <div className="text-[10px] font-medium text-[#8D949E]">{title}</div>
+      <div className="text-[10px] font-medium text-[#8D949E] flex items-center gap-1"><Icon size={12} />{title}</div>
       {loading ? <div className="text-[9px] text-[#4D545C] py-4 text-center">加载中...</div> : <>
         <LineChart data={data} lines={lines} />
         <div className="text-[8px] text-[#6B7280] overflow-x-auto">
@@ -71,13 +72,13 @@ export default function IndicatorsPage({ onNavigate }) {
       <TopBar active="indicators" onHome={() => onNavigate('home')} onStocks={() => onNavigate('dashboard')} onIndicators={() => onNavigate('indicators')} onNews={() => onNavigate('news')} onChat={() => onNavigate('chat')} onAlerts={() => onNavigate('alerts')} />
       <div className="pt-3"><MarketBar quotes={quotes} /></div>
       <div className="px-4 py-2 grid grid-cols-2 gap-2">
-        <IndicatorCard title="📊 M1/M2 货币供应" data={m1m2} lines={[{key:'m1Yoy',color:'#3B82F6'},{key:'m2Yoy',color:'#EAB308',dash:'4,2'}]} loading={loading}
+        <IndicatorCard icon={TrendingUp} title="M1/M2 货币供应" data={m1m2} lines={[{key:'m1Yoy',color:'#3B82F6'},{key:'m2Yoy',color:'#EAB308',dash:'4,2'}]} loading={loading}
           rows={{headers:['月','M1%','M2%','M1万亿'],cells:[d=>d.date?.slice(2),d=>d.m1Yoy?.toFixed(1),d=>d.m2Yoy?.toFixed(1),d=>d.m1?.toFixed(1)]}} />
-        <IndicatorCard title="🏦 新增贷款" data={loan} lines={[{key:'loan',color:'#22C55E'}]} loading={loading}
+        <IndicatorCard icon={Landmark} title="新增贷款" data={loan} lines={[{key:'loan',color:'#22C55E'}]} loading={loading}
           rows={{headers:['月','新增(亿)','同比%','累计万亿'],cells:[d=>d.date?.slice(2),d=>d.loan?.toFixed(0),d=>d.loanYoy?.toFixed(1),d=>d.loanAcc?.toFixed(1)]}} />
-        <IndicatorCard title="📈 贷款增速" data={loan} lines={[{key:'loanYoy',color:'#3B82F6'}]} loading={loading}
+        <IndicatorCard icon={DollarSign} title="贷款增速" data={loan} lines={[{key:'loanYoy',color:'#3B82F6'}]} loading={loading}
           rows={{headers:['月','同比%','累计万亿',''],cells:[d=>d.date?.slice(2),d=>d.loanYoy?.toFixed(1),d=>d.loanAcc?.toFixed(1),()=>'']}} />
-        <IndicatorCard title="🏛️ 准备金率" data={reserve} lines={[{key:'reserveRate',color:'#F97316'}]} loading={loading}
+        <IndicatorCard icon={Banknote} title="准备金率" data={reserve} lines={[{key:'reserveRate',color:'#F97316'}]} loading={loading}
           rows={{headers:['日','准备金%','变动bp','上证次日'],cells:[d=>d.date,d=>d.reserveRate?.toFixed(2),d=>(d.reserveChange>0?'+':'')+d.reserveChange,d=>(d.shNext>0?'+':'')+d.shNext?.toFixed(2)+'%']}} />
       </div>
     </div>
