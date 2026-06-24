@@ -94,6 +94,36 @@ async function main() {
   }
 
   console.log(`Done. Updated:${updated} Skipped:${skipped}`)
+
+  // Calculate market breadth
+  console.log('Calculating market breadth...')
+  try {
+    const seen = new Set()
+    let up = 0, down = 0, limUp = 0, limDown = 0
+    for (let page = 1; page <= 60; page++) {
+      const data = await httpsGet(`https://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/Market_Center.getHQNodeData?page=${page}&num=100&sort=changepercent&asc=0&node=hs_a`)
+      if (!Array.isArray(data) || data.length === 0) break
+      for (const s of data) {
+        seen.add(s.code || s.symbol)
+        const chg = parseFloat(s.changepercent) || 0
+        if (chg > 0) up++; else if (chg < 0) down++
+        if (chg >= 9.8) limUp++
+      }
+      if (data.length < 100) break
+    }
+    for (let page = 1; page <= 10; page++) {
+      const data = await httpsGet(`https://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/Market_Center.getHQNodeData?page=${page}&num=100&sort=changepercent&asc=1&node=hs_a`)
+      if (!Array.isArray(data) || data.length === 0) break
+      for (const s of data) {
+        const chg = parseFloat(s.changepercent) || 0
+        if (chg <= -9.8) limDown++
+      }
+      if (data.length < 100) break
+    }
+    const breadth = { total: seen.size, up, down, limUp, limDown }
+    console.log(`  Breadth: ${JSON.stringify(breadth)}`)
+    await kvPut('breadth:latest', breadth)
+  } catch(e) { console.log(`  Breadth error: ${e.message}`) }
 }
 
 main()
