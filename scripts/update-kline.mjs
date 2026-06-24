@@ -30,7 +30,16 @@ async function getAStockList() {
       if (!Array.isArray(data) || data.length === 0) break
       for (const s of data) {
         const code = s.code || s.symbol
-        if (code) stocks.push({ code, name: s.name || code, type: 'stock' })
+        if (code) {
+        // Ensure prefix for CN_MarketData API
+        let sc = code
+        if (!sc.startsWith('sh') && !sc.startsWith('sz') && !sc.startsWith('bj')) {
+          if (sc.startsWith('6')) sc = 'sh' + sc
+          else if (sc.startsWith('0') || sc.startsWith('3')) sc = 'sz' + sc
+          else if (sc.startsWith('8') || sc.startsWith('4')) sc = 'bj' + sc
+        }
+        stocks.push({ code: sc, name: s.name || sc, type: 'stock' })
+      }
       }
       if (data.length < 100) break
       await sleep(100)
@@ -102,18 +111,37 @@ async function main() {
           url = `https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData?symbol=${sym.code}&scale=240&ma=5,10,20&datalen=500`
         }
 
-        const existing = await kvGet(`kline:${sym.code}`)
+        const key = `kline:${sym.code}`
+        const existing = await kvGet(key)
         const oldLen = existing?.length || 0
 
-        // Skip if recently updated (has today's data)
-        if (oldLen > 0) { skipped++; continue }
+        // Fetch latest data (only 5 bars for daily update)
+        const fetchUrl = sym.type === 'stock'
+          ? url.replace('datalen=500', 'datalen=5')
+          : url
 
-        const data = await httpsGet(url)
-        if (Array.isArray(data) && data.length > 0) {
-          await kvPut(`kline:${sym.code}`, data)
+        const newData = await httpsGet(fetchUrl)
+        if (!Array.isArray(newData) || newData.length === 0) { failed++; continue }
+
+        // Merge: existing + new data, deduplicate by date
+        if (oldLen > 0) {
+          const dateKey = sym.type === 'global' ? 'date' : 'day'
+          const existingDates = new Set(existing.map(d => d[dateKey]))
+          const newBars = newData.filter(d => !existingDates.has(d[dateKey]))
+          if (newBars.length === 0) { skipped++; continue }
+          const merged = [...existing, ...newBars].sort((a, b) => (a[dateKey] || '').localeCompare(b[dateKey] || ''))
+          await kvPut(key, merged)
+          console.log(`  ✅ ${sym.name}: +${newBars.length} new bars (total: ${merged.length})`)
           updated++
-          if (updated % 100 === 0) console.log(`  Progress: ${updated} updated, ${skipped} skipped`)
-        } else { failed++ }
+        } else {
+          // First time: fetch full history
+          const fullData = await httpsGet(url)
+          if (Array.isArray(fullData) && fullData.length > 0) {
+            await kvPut(key, fullData)
+            console.log(`  🆕 ${sym.name}: ${fullData.length} bars (first sync)`)
+            updated++
+          } else { failed++ }
+        }
       } catch (e) { failed++ }
     }
     // 100ms between batches
