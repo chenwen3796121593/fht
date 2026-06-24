@@ -68,7 +68,7 @@ export default function NewsPage({ onNavigate }) {
       <div className="px-4 flex flex-col gap-1.5 pb-8">
         {loading && filtered.length===0 && <div className="text-center text-[#4D545C] text-sm py-12">加载中...</div>}
         {filtered.map((n, i) => (
-          <a key={i} href={n.link||'#'} target="_blank" rel="noopener noreferrer" className="block bg-[#12161C] rounded-lg p-3.5 hover:bg-[#1A2129] transition-colors">
+          <a key={i} href={n.link||'#'} target="_blank" rel="noopener noreferrer" className="block bg-[#12161C] rounded-lg p-3.5 hover:bg-[#1A2129] transition-colors" onClick={e => { e.preventDefault(); window.open(n.link, '_blank') }}>
             <div className="text-sm font-semibold text-[#F0F2F5] leading-snug mb-1.5">{n.title}</div>
             {(n.summary||n.intro) && <div className="text-[11px] text-[#8D949E] leading-relaxed line-clamp-2 mb-2">{n.summary||n.intro}</div>}
             <div className="flex items-center gap-2 text-[11px] text-[#6B7280]">

@@ -113,6 +113,15 @@ export default function StockChart({ symbol, name, priceData }) {
           toShow = parsed.filter((_, i) => i % step === 0 || i === parsed.length - 1)
         }
         if (toShow.length > 0) {
+          // Update last bar close with real-time price if today
+          if (priceData?.price > 0) {
+            const last = toShow[toShow.length - 1]
+            const lastDate = last?.date || last?.day || ''
+            const today = new Date().toISOString().split('T')[0]
+            if (lastDate === today && last.close) {
+              toShow[toShow.length - 1] = { ...last, close: priceData.price, high: Math.max(last.high||0, priceData.price), low: Math.min(last.low||Infinity, priceData.price) }
+            }
+          }
           setKdata(toShow)
           try { if (parsed.length <= 300 || range !== '全部') localStorage.setItem(cacheKey, JSON.stringify({ date: today, data: parsed.slice(-200) })) } catch(e) {}
         }
