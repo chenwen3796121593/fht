@@ -65,6 +65,10 @@ export default function StockChart({ symbol, name, priceData }) {
   const [range, setRange] = useState('日线')
   const [kdata, setKdata] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [realTimePrice, setRealTimePrice] = useState(null)
+  useEffect(() => {
+    if (priceData?.price > 0) setRealTimePrice(priceData.price)
+  }, [priceData?.price])
 
   useEffect(() => {
     let cancelled = false
@@ -131,23 +135,21 @@ export default function StockChart({ symbol, name, priceData }) {
     return () => { cancelled = true }
   }, [symbol, range])
 
-  // Update last bar close with real-time price
-  useEffect(() => {
-    if (!priceData?.price || !kdata || kdata.length === 0) return
-    const last = kdata[kdata.length - 1]
-    const lastDate = last?.date || last?.day || ''
-    const today = new Date().toISOString().split('T')[0]
-    if (lastDate === today) {
-      const updated = kdata.slice()
-      updated[updated.length - 1] = {
-        ...last,
-        close: priceData.price,
-        high: Math.max(last.high||0, priceData.price),
-        low: Math.min(last.low||Infinity, priceData.price),
-      }
-      setKdata(updated)
+  // Merge real-time price into last candle
+  // Always update last candle close with real-time price
+  const rt = realTimePrice || priceData?.price
+  let displayData = kdata
+  if (rt && kdata && kdata.length > 0) {
+    displayData = [...kdata]
+    const idx = displayData.length - 1
+    const last = displayData[idx]
+    displayData[idx] = {
+      ...last,
+      close: rt,
+      high: Math.max(last.high || 0, rt),
+      low: Math.min(last.low || Infinity, rt),
     }
-  }, [priceData?.price, symbol, kdata?.length])
+  }
 
   const hasData = !!priceData
   const last = kdata ? kdata[kdata.length - 1] : null
@@ -188,9 +190,9 @@ export default function StockChart({ symbol, name, priceData }) {
             <span className="text-sm text-[#4D545C]">暂无 K 线数据</span>
           </div>
         )}
-        {kdata && kdata.length > 0 && <CandleChart data={kdata} />}
+        {kdata && kdata.length > 0 && <CandleChart data={displayData} />}
         <div className="text-[11px] text-[#4D545C] mt-1 mb-1">成交量</div>
-        {kdata && <VolChart data={kdata} />}
+        {displayData && <VolChart data={displayData} />}
       </div>
     </div>
   )
