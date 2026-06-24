@@ -131,6 +131,24 @@ export default function StockChart({ symbol, name, priceData }) {
     return () => { cancelled = true }
   }, [symbol, range])
 
+  // Update last bar close with real-time price
+  useEffect(() => {
+    if (!priceData?.price || !kdata || kdata.length === 0) return
+    const last = kdata[kdata.length - 1]
+    const lastDate = last?.date || last?.day || ''
+    const today = new Date().toISOString().split('T')[0]
+    if (lastDate === today) {
+      const updated = kdata.slice()
+      updated[updated.length - 1] = {
+        ...last,
+        close: priceData.price,
+        high: Math.max(last.high||0, priceData.price),
+        low: Math.min(last.low||Infinity, priceData.price),
+      }
+      setKdata(updated)
+    }
+  }, [priceData?.price])
+
   const hasData = !!priceData
   const last = kdata ? kdata[kdata.length - 1] : null
   const change = last && kdata && kdata.length > 1
