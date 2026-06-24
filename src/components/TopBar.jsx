@@ -1,4 +1,4 @@
-import { Flame, House, TrendingUp, MessageCircle, Bell, Newspaper } from 'lucide-react'
+import { Flame, House, TrendingUp, BarChart3, MessageCircle, Bell, Newspaper } from 'lucide-react'
 
 const ICON_SZ = 17
 
@@ -6,7 +6,7 @@ function hasActiveAlerts() {
   try { return JSON.parse(localStorage.getItem('fh_alerts') || '[]').some(a => a.active) } catch { return false }
 }
 
-export default function TopBar({ onNews, onAlerts, onChat, onStocks, onHome, active }) {
+export default function TopBar({ onNews, onAlerts, onChat, onStocks, onIndicators, onHome, active }) {
   const showBadge = hasActiveAlerts()
 
   const btn = (Icon, handler, isActive) => (
@@ -23,6 +23,7 @@ export default function TopBar({ onNews, onAlerts, onChat, onStocks, onHome, act
       <div className="flex-1" />
       {btn(House, onHome, active === 'home')}
       {btn(TrendingUp, onStocks, active === 'dashboard')}
+      {btn(BarChart3, onIndicators, active === 'indicators')}
       {btn(Newspaper, onNews, active === 'news')}
       {btn(MessageCircle, onChat, active === 'chat')}
       <button onClick={onAlerts} className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm relative transition-colors ${active === 'alerts' ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E] hover:text-[#F0F2F5]'}`}>

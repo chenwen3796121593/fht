@@ -45,7 +45,7 @@ export default function Dashboard({ onNavigate }) {
 
   return (
     <div className="bg-[#0A0F14] h-full overflow-y-auto">
-      <TopBar active="dashboard" onHome={() => onNavigate('home')} onStocks={() => onNavigate('dashboard')} onChat={() => onNavigate('chat')} onNews={() => onNavigate('news')} onAlerts={() => onNavigate('alerts')} />
+      <TopBar active="dashboard" onHome={() => onNavigate('home')} onStocks={() => onNavigate('dashboard')} onChat={() => onNavigate('chat')} onIndicators={() => onNavigate('indicators')} onNews={() => onNavigate('news')} onAlerts={() => onNavigate('alerts')} />
 
       <div className="pt-3">
         <MarketBar quotes={quotes} />

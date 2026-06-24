@@ -57,7 +57,7 @@ export default function AlertsPage({ onNavigate }) {
 
   return (
     <div className="overflow-y-auto bg-[#0A0F14] h-full">
-      <TopBar active="alerts" onHome={() => onNavigate('home')} onStocks={() => onNavigate('dashboard')} onNews={() => onNavigate('news')} onChat={() => onNavigate('chat')} onAlerts={() => onNavigate('alerts')} />
+      <TopBar active="alerts" onHome={() => onNavigate('home')} onStocks={() => onNavigate('dashboard')} onIndicators={() => onNavigate('indicators')} onNews={() => onNavigate('news')} onChat={() => onNavigate('chat')} onAlerts={() => onNavigate('alerts')} />
       <div className="px-4 pb-2 flex justify-end">
         <button onClick={() => setShowForm(!showForm)} className="text-[13px] font-medium text-[#3B82F6] flex items-center gap-1">
           <Plus size={14} /> 新建预警
