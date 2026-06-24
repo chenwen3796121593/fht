@@ -93,42 +93,42 @@ const server = http.createServer((req, res) => {
     return
   }
 
-  // Market breadth
-  if (req.url.startsWith('/api/breadth')) {
-    let cached = null, cacheTime = 0
-    const now = Date.now()
-    if (cached && now - cacheTime < 30000) { sendJson(cached); return }
+  // Sector fund flow (东方财富)
+  if (req.url.startsWith('/api/flow')) {
+    const type = new URL(req.url, 'http://localhost').searchParams.get('type') || 'in'
+    const po = type === 'in' ? '1' : '0'
+    https.get({
+      hostname: 'emdatah5.eastmoney.com',
+      path: `/dc/ZJLX/getZDYLBData?fields=f2,f3,f12,f14,f62,f184&pn=1&pz=10&fid=f62&po=${po}&fs=m:90+t:2`,
+      headers: { Referer: 'https://emdatah5.eastmoney.com/dc/zjlx/block', 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36' },
+      timeout: 8000,
+    }, (sRes) => {
+      const chunks = []
+      sRes.on('data', c => chunks.push(c))
+      sRes.on('end', () => { try { sendJson(JSON.parse(Buffer.concat(chunks).toString())) } catch(e) { sendJson({}) } })
+    }).on('error', () => sendJson({}))
+    return
+  }
 
-    async function fetchBreadth() {
-      let up = 0, down = 0, limUp = 0, limDown = 0
-      for (let page = 1; page <= 30; page++) {
+  // Market breadth (财联社)
+  if (req.url === '/api/breadth') {
+    https.get({
+      hostname: 'x-quote.cls.cn',
+      path: '/v2/quote/a/stock/emotion',
+      headers: { Referer: 'https://www.cls.cn/', 'User-Agent': 'Mozilla/5.0' },
+    }, (sRes) => {
+      const chunks = []
+      sRes.on('data', c => chunks.push(c))
+      sRes.on('end', () => {
         try {
-          const data = await new Promise((resolve, reject) => {
-            https.get({
-              hostname: 'vip.stock.finance.sina.com.cn',
-              path: `/quotes_service/api/json_v2.php/Market_Center.getHQNodeData?page=${page}&num=100&sort=changepercent&asc=0&node=hs_a`,
-              headers: { Referer: 'https://finance.sina.com.cn' },
-            }, (sRes) => {
-              const chunks = []
-              sRes.on('data', c => chunks.push(c))
-              sRes.on('end', () => { try { resolve(JSON.parse(iconv.decode(Buffer.concat(chunks), 'gbk'))) } catch(e) { resolve([]) } })
-            }).on('error', () => resolve([]))
-          })
-          if (!data || data.length === 0) break
-          for (const s of data) {
-            const chg = parseFloat(s.changepercent) || 0
-            if (chg > 0) up++; else if (chg < 0) down++
-            if (chg >= 9.9) limUp++
-            if (chg <= -9.9) limDown++
-          }
-          if (data.length < 100) break
-        } catch(e) { break }
-      }
-      cached = { total: up + down, up, down, limUp, limDown }
-      cacheTime = Date.now()
-      sendJson(cached)
-    }
-    fetchBreadth()
+          const json = JSON.parse(Buffer.concat(chunks).toString())
+          const d = json?.data?.up_down_dis
+          if (d) {
+            sendJson({ total: d.rise_num + d.fall_num + d.flat_num, up: d.rise_num, down: d.fall_num, limUp: d.up_num, limDown: d.down_num })
+          } else { sendJson({ total: 0, up: 0, down: 0, limUp: 0, limDown: 0 }) }
+        } catch (e) { sendJson({ total: 0, up: 0, down: 0, limUp: 0, limDown: 0 }) }
+      })
+    }).on('error', () => { sendJson({ total: 0, up: 0, down: 0, limUp: 0, limDown: 0 }) })
     return
   }
 

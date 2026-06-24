@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import TopBar from '../components/TopBar'
 import MarketBar, { useMarketQuotes } from '../components/MarketBar'
-import { Activity } from 'lucide-react'
+import { Activity, TrendingUp, TrendingDown } from 'lucide-react'
 
 function Thermometer({ pct }) {
   const h = Math.max(5, Math.min(100, 50 + pct * 20))
@@ -17,6 +17,83 @@ function Thermometer({ pct }) {
   )
 }
 
+function SectorFlow() {
+  const [tab, setTab] = useState('in')
+  const [allData, setAllData] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+    async function fetchData() {
+      try {
+        // Try CF format first (single request)
+        const res = await fetch('/api/flow')
+        const json = await res.json()
+        if (!cancelled) {
+          // CF format: {data: [...], outData: [...]}
+          if (json.data && json.outData) { setAllData(json); return }
+          // Local proxy format: {data: {diff: [...]}}
+          if (json.data?.diff) {
+            // Fetch both directions
+            const outRes = await fetch('/api/flow?type=out')
+            const outJson = await outRes.json()
+            const mapData = (arr) => (arr?.data?.diff || []).map(i => ({
+              name: i.f14 || '?', netFlow: parseFloat(i.f62) || 0,
+              change: parseFloat(i.f3) || 0, netRatio: parseFloat(i.f184) || 0,
+            }))
+            if (!cancelled) setAllData({ data: mapData(json), outData: mapData(outJson) })
+          }
+        }
+      } catch(e) { if (!cancelled) setAllData(null) }
+    }
+    fetchData()
+    return () => { cancelled = true }
+  }, [])
+
+  const data = tab === 'in' ? allData?.data : allData?.outData
+  const maxFlow = data?.length ? Math.max(...data.map(d => Math.abs(d.netFlow))) : 1
+
+  return (
+    <div className="bg-[#12161C] border border-[#242B33] rounded-xl p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-xs text-[#8D949E] flex items-center gap-1.5">
+          <TrendingUp size={14} className={tab === 'in' ? 'text-[#EF4444]' : 'text-[#8D949E]'} />
+          板块资金
+        </div>
+        <div className="flex gap-1">
+          <button onClick={() => setTab('in')} className={`px-2.5 py-1 rounded text-[11px] font-medium ${tab === 'in' ? 'bg-[#EF4444] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>流入 TOP</button>
+          <button onClick={() => setTab('out')} className={`px-2.5 py-1 rounded text-[11px] font-medium ${tab === 'out' ? 'bg-[#22C55E] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>流出 TOP</button>
+        </div>
+      </div>
+      {data && data.length > 0 ? (
+        <div className="flex flex-col gap-1.5">
+          {data.map((item, i) => {
+            const name = item.name || '?'
+            const flow = (item.netFlow || 0) / 1e8
+            const barW = Math.max(3, Math.abs(flow) / (maxFlow / 1e8) * 100)
+            const up = flow > 0
+            return (
+              <div key={i} className="flex items-center gap-2 text-xs">
+                <span className="w-24 text-[#8D949E] truncate" title={name}>{name}</span>
+                <div className="flex-1 h-3 bg-[#1A2129] rounded-sm overflow-hidden">
+                  <div className="h-full rounded-sm" style={{ width: barW + '%', backgroundColor: up ? '#EF4444' : '#22C55E' }} />
+                </div>
+                <span className="w-16 text-right font-medium" style={{ color: up ? '#EF4444' : '#22C55E' }}>
+                  {up ? '+' : ''}{flow.toFixed(1)}亿
+                </span>
+                <span className="w-12 text-right" style={{ color: (item.change||0) >= 0 ? '#EF4444' : '#22C55E' }}>
+                  {(item.change||0) >= 0 ? '+' : ''}{(item.change||0).toFixed(1)}%
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      ) : (
+        <div className="text-xs text-[#4D545C] py-4 text-center">加载中...</div>
+      )}
+    </div>
+  )
+}
+
 export default function HomePage({ onNavigate }) {
   const quotes = useMarketQuotes()
   const [breadth, setBreadth] = useState(null)
@@ -24,11 +101,7 @@ export default function HomePage({ onNavigate }) {
   useEffect(() => {
     let cancelled = false
     const fetchBreadth = async () => {
-      try {
-        const res = await fetch('/api/breadth')
-        const data = await res.json()
-        if (!cancelled && data.total > 0) setBreadth(data)
-      } catch(e) {}
+      try { const res = await fetch('/api/breadth'); const data = await res.json(); if (!cancelled && data.total > 0) setBreadth(data) } catch(e) {}
     }
     fetchBreadth()
     const t = setInterval(fetchBreadth, 30000)
@@ -36,9 +109,7 @@ export default function HomePage({ onNavigate }) {
   }, [])
 
   const sh = quotes['sh000001'], sz = quotes['sz399001']
-  const totalTurnover = (sh?.turnover && sz?.turnover)
-    ? ((sh.turnover + sz.turnover) / 1e8).toFixed(0) + '亿'
-    : '--'
+  const totalTurnover = (sh?.turnover && sz?.turnover) ? ((sh.turnover + sz.turnover) / 1e8).toFixed(0) + '亿' : '--'
   const avgChg = sh && sz ? ((sh.change || 0) + (sz.change || 0)) / 2 : 0
 
   return (
@@ -75,6 +146,8 @@ export default function HomePage({ onNavigate }) {
             <div className="text-xs text-[#4D545C]">加载中...</div>
           )}
         </div>
+
+        <SectorFlow />
       </div>
     </div>
   )
