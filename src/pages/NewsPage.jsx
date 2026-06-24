@@ -23,8 +23,14 @@ export default function NewsPage({ onNavigate }) {
       const urls = ['/api/rss-news?type=stock', '/api/rss-news?type=commodity', '/api/macro-news']
       const responses = await Promise.all(urls.map(u => fetch(u).catch(() => ({ json: () => [] }))))
       const data = await Promise.all(responses.map(r => r.json().catch(() => [])))
-      const stock = Array.isArray(data[0]) ? data[0] : []
-      const commodity = Array.isArray(data[1]) ? data[1] : []
+      const sortByStars = (arr) => arr.sort((a, b) => {
+        const sa = (a.title||'').match(/(★+)/)?.[1]?.length || 0
+        const sb = (b.title||'').match(/(★+)/)?.[1]?.length || 0
+        if (sa !== sb) return sb - sa
+        return new Date(b.pubDate||0) - new Date(a.pubDate||0)
+      })
+      const stock = sortByStars(Array.isArray(data[0]) ? data[0] : [])
+      const commodity = sortByStars(Array.isArray(data[1]) ? data[1] : [])
       const macro = Array.isArray(data[2]) ? data[2] : []
       setRssNews({ stock, commodity, macro })
     } catch(e) {}
@@ -44,12 +50,8 @@ export default function NewsPage({ onNavigate }) {
     return () => clearInterval(t)
   }, [fetchAll])
 
-  const getStars = (s) => { const m = (s?.title||'').match(/(★+)/); return m ? m[1].length : 0 }
-  const all = [...rssNews.stock, ...rssNews.commodity, ...rssNews.macro].sort((a, b) => {
-    const sa = getStars(a), sb = getStars(b)
-    if (sa !== sb) return sb - sa
-    return new Date(b.pubDate||b.time) - new Date(a.pubDate||a.time)
-  })
+  const sorted = (arr) => [...arr].sort((a,b) => new Date(b.pubDate||b.time) - new Date(a.pubDate||a.time))
+  const all = sorted([...rssNews.stock, ...rssNews.commodity, ...rssNews.macro])
   const filtered = tab === '全部' ? all
     : tab === '股票' ? rssNews.stock
     : tab === '商品' ? rssNews.commodity
