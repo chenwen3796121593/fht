@@ -1,4 +1,4 @@
-import https from 'https'
+import https from 'node:https'
 import iconv from 'iconv-lite'
 
 const CF = {
@@ -19,7 +19,7 @@ const SYMBOLS = [
   { code: 'M0', name: '豆粕', type: 'inner' },
 ]
 
-function fetch(url) {
+function sinaFetch(url) {
   return new Promise((resolve, reject) => {
     https.get(url, { headers: { Referer: 'https://finance.sina.com.cn' } }, (res) => {
       const chunks = []
@@ -63,7 +63,7 @@ async function main() {
         url = `https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData?symbol=${sym.code}&scale=240&ma=5,10,20&datalen=500`
       }
 
-      const data = await fetch(url)
+      const data = await sinaFetch(url)
       if (Array.isArray(data) && data.length > 0) {
         const key = `kline:${sym.code}`
 
