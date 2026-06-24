@@ -143,11 +143,15 @@ export default function StockChart({ symbol, name, priceData }) {
     displayData = [...kdata]
     const idx = displayData.length - 1
     const last = displayData[idx]
+    const quoteOpen = priceData?.open
+    const quoteHigh = priceData?.high
+    const quoteLow = priceData?.low
     displayData[idx] = {
       ...last,
+      open: quoteOpen || last.open,
       close: rt,
-      high: Math.max(last.high || 0, rt),
-      low: Math.min(last.low || Infinity, rt),
+      high: Math.max(last.high || 0, quoteHigh || rt, rt),
+      low: Math.min(last.low || Infinity, quoteLow || rt, rt),
     }
   }
 

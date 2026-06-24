@@ -37,9 +37,16 @@ export function useMarketQuotes() {
           change = prev ? ((price - prev) / prev * 100) : 0
           let turnover = 0
           if (isIndex) { turnover = parseFloat(s[9]) || 0 }
+          let open = price, high = price, low = price
+          if (isIndex) {
+            open = parseFloat(s[1]) || price; high = parseFloat(s[4]) || price; low = parseFloat(s[5]) || price
+          } else if (!q.symbol.startsWith('nf_')) {
+            open = parseFloat(s[1]) || price; high = parseFloat(s[4]) || price; low = parseFloat(s[5]) || price
+          }
           result[q.symbol] = {
             price: isIndex ? price.toFixed(2) : (q.symbol === 'hf_XAU' ? price.toFixed(1) : q.symbol === 'nf_M0' ? price.toFixed(0) : price.toFixed(2)),
-            change, point: (price - prev).toFixed(q.symbol === 'nf_M0' ? 0 : 2), turnover
+            change, point: (price - prev).toFixed(q.symbol === 'nf_M0' ? 0 : 2), turnover,
+            open, high, low, rawPrice: price
           }
         }
         if (!cancelled) setQuotes(result)
