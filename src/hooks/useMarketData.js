@@ -51,13 +51,7 @@ function parseSina(data, item) {
 
 function fmtPrice(symbol, price) {
   if (!price) return '--'
-  if (symbol.startsWith('sh') || symbol.startsWith('sz')) return price.toFixed(2)
-  if (symbol === 'hf_XAU') return '$' + price.toFixed(1)
-  if (symbol === 'hf_XAG') return '$' + price.toFixed(2)
-  if (symbol === 'hf_CL') return '$' + price.toFixed(2)
-  if (symbol === 'hf_HG' || symbol === 'hf_AHD') return '$' + price.toFixed(1)
-  if (symbol === 'nf_M0') return '¥' + price.toFixed(0)
-  return '$' + price.toFixed(2)
+  return price.toFixed(symbol.startsWith('sh')||symbol.startsWith('sz') ? 2 : symbol==='hf_XAU'||symbol==='hf_HG'||symbol==='hf_AHD' ? 1 : 2)
 }
 
 export default function useMarketData(extraSymbols = []) {

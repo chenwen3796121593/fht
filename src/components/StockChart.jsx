@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 
-const rangeLabels = ['1日', '1周', '1月', '3月', '1年', '全部']
+const rangeLabels = ['分时', '日线', '周线', '月线', '全部']
 
 function fmtPrice(v, symbol) {
   if (!v) return '--'

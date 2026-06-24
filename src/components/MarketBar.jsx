@@ -8,7 +8,6 @@ const ITEMS = [
   { symbol: 'hf_CL', name: '国际原油' },
   { symbol: 'hf_HG', name: 'COMEX铜' },
   { symbol: 'hf_AHD', name: 'LME铝' },
-  { symbol: 'nf_M0', name: '豆粕' },
 ]
 
 export function useMarketQuotes() {

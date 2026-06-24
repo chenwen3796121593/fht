@@ -27,7 +27,7 @@ export default function Dashboard({ onNavigate }) {
     <div className="bg-[#0A0F14] h-full overflow-y-auto">
       <TopBar active="dashboard" onHome={() => onNavigate('home')} onStocks={() => onNavigate('dashboard')} onChat={() => onNavigate('chat')} onNews={() => onNavigate('news')} onAlerts={() => onNavigate('alerts')} />
 
-      <div className="py-3">
+      <div className="pt-3">
         <MarketBar quotes={quotes} />
       </div>
 

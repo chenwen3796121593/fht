@@ -15,7 +15,7 @@ export async function onRequest() {
         limDown: d.down_num,
         updated: new Date().toISOString(),
       }), {
-        headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=30' },
+        headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache' },
       })
     }
     return new Response(JSON.stringify({ total: 0, up: 0, down: 0, limUp: 0, limDown: 0 }), {
