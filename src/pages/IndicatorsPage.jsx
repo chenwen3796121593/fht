@@ -63,6 +63,13 @@ function IndicatorCard({ title, data, lines, rows, loading, shData, icon: Icon }
 
 const toArray = (d) => Array.isArray(d) ? d : (d?.result?.data || d?.macro || d?.data || [])
 
+const CACHE_KEYS = ['fh_indicator_m1m2','fh_indicator_loan','fh_indicator_reserve','fh_indicator_sh']
+const CACHE_TTL = 86400000 // 24h
+
+function fmtTime(ts) {
+  return new Date(ts).toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit' })
+}
+
 export default function IndicatorsPage({ onNavigate }) {
   const quotes = useMarketQuotes()
   const [m1m2, setM1m2] = useState(null)
@@ -77,6 +84,21 @@ export default function IndicatorsPage({ onNavigate }) {
 
   useEffect(() => {
     let cancelled = false
+
+    // Load from cache instantly
+    try {
+      const raw = CACHE_KEYS.map(k => localStorage.getItem(k))
+      if (raw.every(Boolean)) {
+        const p = raw.map(r => JSON.parse(r))
+        if (p.every(x => x && Date.now() - x.ts < CACHE_TTL)) {
+          setM1m2(p[0].data); setLoan(p[1].data)
+          setReserve(p[2].data); setShMonthly(p[3].data)
+          setLastUpdate(fmtTime(p[0].ts))
+          setLoading(false)
+        }
+      }
+    } catch(e) {}
+
     let timer = null
 
     async function fetchAll() {
@@ -91,11 +113,16 @@ export default function IndicatorsPage({ onNavigate }) {
         ])
         const [m1D, loanD, resD, shD] = await Promise.all([m1R.json(), loanR.json(), resR.json(), shR.json()])
         if (cancelled) return
-        setM1m2(toArray(m1D))
-        setLoan(toArray(loanD))
-        setReserve(toArray(resD))
-        setShMonthly(Array.isArray(shD) ? shD : [])
-        setLastUpdate(new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }))
+        const m1a = toArray(m1D), la = toArray(loanD)
+        const ra = toArray(resD), shA = Array.isArray(shD) ? shD : []
+        // Save to cache
+        const now = Date.now()
+        try {
+          const arr = [{data:m1a,ts:now},{data:la,ts:now},{data:ra,ts:now},{data:shA,ts:now}]
+          CACHE_KEYS.forEach((k,i) => localStorage.setItem(k, JSON.stringify(arr[i])))
+        } catch(e) {}
+        setM1m2(m1a); setLoan(la); setReserve(ra); setShMonthly(shA)
+        setLastUpdate(fmtTime(now))
         setLoading(false)
       } catch(e) { if (!cancelled) setLoading(false) }
       if (!cancelled) { setRefreshing(false); setTimeout(() => setSpin(false), 600) }
@@ -121,9 +148,10 @@ export default function IndicatorsPage({ onNavigate }) {
         </div>
         <button
           onClick={() => fetchRef.current?.()}
-          className="w-7 h-7 rounded-lg flex items-center justify-center bg-[#1A2129] text-[#8D949E] hover:bg-[#242B33] hover:text-[#F0F2F5] active:scale-90 transition-all"
+          disabled={refreshing}
+          className="w-7 h-7 rounded-lg flex items-center justify-center bg-[#1A2129] text-[#8D949E] hover:bg-[#242B33] hover:text-[#F0F2F5] disabled:opacity-40"
         >
-          <RefreshCw size={13} className={spin ? 'animate-spin' : ''} />
+          <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
         </button>
       </div>
       <div className="px-4 pb-6 grid grid-cols-2 gap-2">

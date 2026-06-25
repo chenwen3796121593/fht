@@ -1,11 +1,9 @@
-const CACHE_NAME = 'fenghuotai-v2'
+const CACHE_NAME = 'fenghuotai-v3'
 
-// On install, cache nothing - fetch on demand
 self.addEventListener('install', () => {
   self.skipWaiting()
 })
 
-// Clean old caches on activate
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -15,12 +13,16 @@ self.addEventListener('activate', (event) => {
   self.clients.claim()
 })
 
-// Network-first for HTML, cache-first for assets with hashed names
 self.addEventListener('fetch', (event) => {
   const { request } = event
   const url = new URL(request.url)
 
-  // Always go network-first for HTML (picks up new deployments)
+  // Never cache API calls — Supabase, /api/* etc
+  if (url.hostname.includes('supabase.co') || url.pathname.startsWith('/api/')) {
+    return // let browser handle normally, no caching
+  }
+
+  // Network-first for HTML
   if (request.destination === 'document' || url.pathname === '/') {
     event.respondWith(
       fetch(request)
@@ -34,7 +36,7 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Cache-first for hashed assets (JS/CSS with unique names per build)
+  // Cache-first for hashed assets only
   event.respondWith(
     caches.match(request).then((cached) => cached || fetch(request).then((res) => {
       const clone = res.clone()
@@ -44,7 +46,6 @@ self.addEventListener('fetch', (event) => {
   )
 })
 
-// Push notifications
 self.addEventListener('push', (event) => {
   const data = event.data ? event.data.json() : {}
   self.registration.showNotification(data.title || '烽火台', {
