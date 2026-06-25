@@ -16,8 +16,16 @@ export async function onRequest(context) {
     const res = await fetch(url, {
       headers: { 'User-Agent': 'Mozilla/5.0', Referer: 'https://data.eastmoney.com/' },
     })
+
+    if (!res.ok) return r([])
+
     const json = await res.json()
-    const data = (json?.result?.data || []).map((d) => ({
+    const raw = json?.result?.data || json?.data || json?.macro || []
+
+    if (!Array.isArray(raw) || raw.length === 0) return r([])
+
+    // Map raw Eastmoney field names to frontend-friendly names
+    const data = raw.map((d) => ({
       date: (d.TIME || d.REPORT_DATE || '').replace('年', '-').replace('月份', '').replace('月', '').slice(0, 7),
       m2: parseFloat(d.BASIC_CURRENCY) / 10000 || 0,
       m1: parseFloat(d.CURRENCY) / 10000 || 0,
@@ -31,6 +39,7 @@ export async function onRequest(context) {
       reserveChange: parseFloat(d.CHANGE_RATE_B) || 0,
       shNext: parseFloat(d.NEXT_SH_RATE) || 0,
     })).filter(d => d.date && d.date.length === 7)
+
     return r(data)
   } catch (e) {
     return r([])
@@ -39,6 +48,6 @@ export async function onRequest(context) {
 
 function r(data) {
   return new Response(JSON.stringify(data), {
-    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=86400' },
+    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' },
   })
 }
