@@ -53,7 +53,7 @@ export function useMarketQuotes() {
       } catch(e) {}
     }
     fetchAll()
-    const t = setInterval(fetchAll, 10000)
+    const t = setInterval(fetchAll, 3000)
     return () => { cancelled = true; clearInterval(t) }
   }, [])
   return quotes

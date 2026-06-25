@@ -105,7 +105,7 @@ export default function useMarketData(extraSymbols = []) {
 
   useEffect(() => {
     fetchAll()
-    const t = setInterval(fetchAll, 10000)
+    const t = setInterval(fetchAll, 3000)
     return () => clearInterval(t)
   }, [fetchAll])
 
