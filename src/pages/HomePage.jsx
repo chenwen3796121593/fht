@@ -114,7 +114,7 @@ export default function HomePage({ onNavigate }) {
 
   return (
     <div className="bg-[#0A0F14] h-full overflow-y-auto">
-      <TopBar active="home" onHome={() => onNavigate('home')} onStocks={() => onNavigate('dashboard')} onChat={() => onNavigate('chat')} onIndicators={() => onNavigate('indicators')} onNews={() => onNavigate('news')} onAlerts={() => onNavigate('alerts')} />
+      <TopBar active="home" onHome={() => onNavigate('home')} onStocks={() => onNavigate('dashboard')} onChat={() => onNavigate('chat')} onIndicators={() => onNavigate('indicators')} onNews={() => onNavigate('news')} onAlerts={() => onNavigate('alerts')} onVip={() => onNavigate('vip')} />
 
       <div className="px-4 py-3 flex flex-col gap-3">
         <MarketBar quotes={quotes} />

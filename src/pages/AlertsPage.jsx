@@ -20,8 +20,15 @@ const DEFAULT_WATCH = [
 function getWatchList() {
   try {
     const custom = JSON.parse(localStorage.getItem('fh_custom') || '[]')
-    return [...DEFAULT_WATCH, ...custom]
+    return [...DEFAULT_WATCH, ...(Array.isArray(custom) ? custom : [])]
   } catch(e) { return DEFAULT_WATCH }
+}
+
+async function requestPushPerm() {
+  if (!('Notification' in window)) return
+  if (Notification.permission === 'granted') return
+  if (Notification.permission === 'denied') return
+  await Notification.requestPermission()
 }
 
 export default function AlertsPage({ onNavigate }) {
@@ -49,6 +56,9 @@ export default function AlertsPage({ onNavigate }) {
   }
 
   const toggleMethod = (m) => {
+    if (m === 'push' && !form.methods.includes('push')) {
+      requestPushPerm()
+    }
     setForm(f => ({
       ...f,
       methods: f.methods.includes(m) ? f.methods.filter(x => x !== m) : [...f.methods, m]
@@ -57,9 +67,9 @@ export default function AlertsPage({ onNavigate }) {
 
   return (
     <div className="overflow-y-auto bg-[#0A0F14] h-full">
-      <TopBar active="alerts" onHome={() => onNavigate('home')} onStocks={() => onNavigate('dashboard')} onIndicators={() => onNavigate('indicators')} onNews={() => onNavigate('news')} onChat={() => onNavigate('chat')} onAlerts={() => onNavigate('alerts')} />
-      <div className="px-4 pb-2 flex justify-end">
-        <button onClick={() => setShowForm(!showForm)} className="text-[13px] font-medium text-[#3B82F6] flex items-center gap-1">
+      <TopBar active="alerts" onHome={() => onNavigate('home')} onStocks={() => onNavigate('dashboard')} onIndicators={() => onNavigate('indicators')} onNews={() => onNavigate('news')} onChat={() => onNavigate('chat')} onAlerts={() => onNavigate('alerts')} onVip={() => onNavigate('vip')} />
+      <div className="px-4 pt-3 pb-3 flex justify-end">
+        <button onClick={() => setShowForm(!showForm)} className="px-3 py-1.5 rounded-md text-xs font-medium bg-[#3B82F6] text-white flex items-center gap-1 active:scale-95 transition-all">
           <Plus size={14} /> 新建预警
         </button>
       </div>
@@ -87,21 +97,21 @@ export default function AlertsPage({ onNavigate }) {
               </select>
               <input className="w-20 bg-[#1A2129] rounded-md px-3 py-2 text-sm text-[#F0F2F5] outline-none text-center" type="number" value={form.value}
                 onChange={e => setForm({ ...form, value: parseFloat(e.target.value) || 0 })} />
-              {form.type === 'pct' ? <span className="text-sm text-[#8D949E] self-center">%</span> : <span className="text-sm text-[#8D949E] self-center">美元</span>}
+              <span className="text-sm text-[#8D949E] self-center">{form.type === 'pct' ? '%' : '$'}</span>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               {['push', 'vibrate', 'voice'].map(m => {
                 const I = MI[m]
                 const active = form.methods.includes(m)
                 return (
                   <button key={m} onClick={() => toggleMethod(m)}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs ${active ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>
-                    <I size={13} /> {m === 'push' ? '推送' : m === 'vibrate' ? '震动' : '语音'}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${active ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>
+                    <I size={14} /> {m === 'push' ? '推送' : m === 'vibrate' ? '震动' : '语音'}
                   </button>
                 )
               })}
             </div>
-            <button onClick={addAlert} className="bg-[#3B82F6] text-white py-2 rounded-md text-sm font-medium">确认添加</button>
+            <button onClick={addAlert} className="bg-[#3B82F6] text-white py-2.5 rounded-md text-sm font-medium active:scale-[0.98] transition-all">确认添加</button>
           </div>
         </div>
       )}
@@ -114,14 +124,16 @@ export default function AlertsPage({ onNavigate }) {
           <div key={a.id} className="bg-[#12161C] rounded-lg p-3.5 flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className={`text-sm font-semibold ${a.active ? 'text-[#F0F2F5]' : 'text-[#8D949E]'}`}>
-                  {a.name} <span className="text-[11px] text-[#4D545C]">{a.symbol}</span>
+                <span className={`text-sm font-semibold ${a.active ? 'text-[#F0F2F5]' : 'text-[#4D545C]'}`}>
+                  {a.name} <span className="text-[11px] text-[#6B7280]">{a.symbol}</span>
                 </span>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-2">
                 <button onClick={() => toggleAlert(a.id)}
-                  className={`w-3 h-3 rounded-full ${a.active ? 'bg-[#22C55E]' : 'bg-[#4D545C]'}`} />
-                <button onClick={() => deleteAlert(a.id)} className="text-[#4D545C] hover:text-red-400 ml-1">
+                  className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${a.active ? 'bg-[#22C55E]/20 text-[#22C55E]' : 'bg-[#4D545C]/20 text-[#4D545C]'}`}>
+                  <div className={`w-3 h-3 rounded-full ${a.active ? 'bg-[#22C55E]' : 'bg-[#4D545C]'}`} />
+                </button>
+                <button onClick={() => deleteAlert(a.id)} className="w-6 h-6 rounded-lg flex items-center justify-center text-[#4D545C] hover:text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors">
                   <Trash2 size={14} />
                 </button>
               </div>

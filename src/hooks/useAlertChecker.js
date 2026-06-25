@@ -27,23 +27,36 @@ export default function useAlertChecker(prices) {
         if (triggered) {
           const key = alert.symbol + ':' + alert.type + ':' + alert.value
           const last = lastAlerted.current[key] || 0
-          // Don't spam - max once per 5 minutes
           if (Date.now() - last > 300000) {
             lastAlerted.current[key] = Date.now()
 
-            // Update alert trigger time
+            // Update trigger time in localStorage
             alert.triggered = new Date().toLocaleString('zh-CN', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' })
-            const updated = alerts.map(a => a.id === alert.id ? alert : a)
+            const stored = JSON.parse(localStorage.getItem('fh_alerts') || '[]')
+            const updated = stored.map(a => a.id === alert.id ? alert : a)
             localStorage.setItem('fh_alerts', JSON.stringify(updated))
 
-            // Send push notification
             const methods = alert.methods || []
-            const msg = `${alert.name} ${alert.type==='pct'?'涨跌幅超±'+alert.value+'%':alert.type==='price_up'?'突破$'+alert.value:'跌破$'+alert.value}，当前${hp}`
+            const msg = `${alert.name} ${alert.type==='pct'?'涨跌幅超±'+alert.value+'%':alert.type==='price_up'?'突破'+alert.value:'跌破'+alert.value}，当前${hp}`
+
+            // Push notification (via Service Worker)
             if (methods.includes('push') && 'Notification' in window && Notification.permission === 'granted') {
-              new Notification('🔔 烽火台预警', { body: msg, icon: '/icon-192.png', vibrate: [200,100,200] })
+              new Notification('🔔 烽火台预警', { body: msg, icon: '/icon-192.png', vibrate: [200, 100, 200], tag: 'fh-alert' })
             }
+
+            // Vibration
+            if (methods.includes('vibrate') && 'vibrate' in navigator) {
+              try { navigator.vibrate([200, 100, 200]) } catch(e) {}
+            }
+
+            // Voice
             if (methods.includes('voice') && 'speechSynthesis' in window) {
-              const u = new SpeechSynthesisUtterance(msg); u.lang = 'zh-CN'; u.rate = 1.0; speechSynthesis.speak(u)
+              try {
+                const u = new SpeechSynthesisUtterance(msg)
+                u.lang = 'zh-CN'; u.rate = 1.0
+                speechSynthesis.cancel()
+                speechSynthesis.speak(u)
+              } catch(e) {}
             }
           }
         }

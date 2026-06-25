@@ -14,7 +14,6 @@ export default function Dashboard({ onNavigate }) {
   const [customStocks, setCustomStocks] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('fh_custom') || '[]')
-      // Auto-fix old entries without prefix
       let changed = false
       const fixed = (Array.isArray(saved) ? saved : []).map(s => {
         let sym = s?.symbol || ''
@@ -45,14 +44,16 @@ export default function Dashboard({ onNavigate }) {
 
   return (
     <div className="bg-[#0A0F14] h-full overflow-y-auto">
-      <TopBar active="dashboard" onHome={() => onNavigate('home')} onStocks={() => onNavigate('dashboard')} onChat={() => onNavigate('chat')} onIndicators={() => onNavigate('indicators')} onNews={() => onNavigate('news')} onAlerts={() => onNavigate('alerts')} />
+      <TopBar active="dashboard" onHome={() => onNavigate('home')} onStocks={() => onNavigate('dashboard')} onChat={() => onNavigate('chat')} onIndicators={() => onNavigate('indicators')} onNews={() => onNavigate('news')} onAlerts={() => onNavigate('alerts')} onVip={() => onNavigate('vip')} />
 
       <div className="pt-3">
         <MarketBar quotes={quotes} />
       </div>
 
       <Watchlist selected={selected.symbol} onSelect={handleSelect} prices={prices} customStocks={customStocks} onAddStock={handleAddStock} onRemoveStock={handleRemoveStock} />
-      <StockChart symbol={selected.symbol} name={selected.name} priceData={quotes[selected.symbol] || prices[selected.symbol]} />
+      <div className="pb-6">
+        <StockChart symbol={selected.symbol} name={selected.name} priceData={quotes[selected.symbol] || prices[selected.symbol]} />
+      </div>
     </div>
   )
 }

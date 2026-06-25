@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import TopBar from '../components/TopBar'
 import MarketBar, { useMarketQuotes } from '../components/MarketBar'
 import { TrendingUp, Landmark, DollarSign, Banknote, BarChart3, RefreshCw } from 'lucide-react'
@@ -63,11 +63,6 @@ function IndicatorCard({ title, data, lines, rows, loading, shData, icon: Icon }
 
 const toArray = (d) => Array.isArray(d) ? d : (d?.result?.data || d?.macro || d?.data || [])
 
-function fmtTime() {
-  const now = new Date()
-  return now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
-}
-
 export default function IndicatorsPage({ onNavigate }) {
   const quotes = useMarketQuotes()
   const [m1m2, setM1m2] = useState(null)
@@ -77,41 +72,44 @@ export default function IndicatorsPage({ onNavigate }) {
   const [loading, setLoading] = useState(true)
   const [lastUpdate, setLastUpdate] = useState('')
   const [refreshing, setRefreshing] = useState(false)
+  const [spin, setSpin] = useState(false)
+  const fetchRef = useRef(null)
 
-  const fetchAll = useCallback(async () => {
+  useEffect(() => {
     let cancelled = false
-    setRefreshing(true)
-    try {
-      const [m1R, loanR, resR, shR] = await Promise.all([
-        fetch('/api/macro-data?report=CURRENCY_SUPPLY'),
-        fetch('/api/macro-data?report=RMB_LOAN'),
-        fetch('/api/macro-data?report=DEPOSIT_RESERVE'),
-        fetch('/api/sh-monthly'),
-      ])
-      const [m1D, loanD, resD, shD] = await Promise.all([m1R.json(), loanR.json(), resR.json(), shR.json()])
-      if (!cancelled) {
+    let timer = null
+
+    async function fetchAll() {
+      if (cancelled) return
+      setRefreshing(true); setSpin(true)
+      try {
+        const [m1R, loanR, resR, shR] = await Promise.all([
+          fetch('/api/macro-data?report=CURRENCY_SUPPLY'),
+          fetch('/api/macro-data?report=RMB_LOAN'),
+          fetch('/api/macro-data?report=DEPOSIT_RESERVE'),
+          fetch('/api/sh-monthly'),
+        ])
+        const [m1D, loanD, resD, shD] = await Promise.all([m1R.json(), loanR.json(), resR.json(), shR.json()])
+        if (cancelled) return
         setM1m2(toArray(m1D))
         setLoan(toArray(loanD))
         setReserve(toArray(resD))
         setShMonthly(Array.isArray(shD) ? shD : [])
-        setLastUpdate(fmtTime())
+        setLastUpdate(new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }))
         setLoading(false)
-      }
-    } catch(e) { if (!cancelled) setLoading(false) }
-    setRefreshing(false)
-    return () => { cancelled = true }
-  }, [])
+      } catch(e) { if (!cancelled) setLoading(false) }
+      if (!cancelled) { setRefreshing(false); setTimeout(() => setSpin(false), 600) }
+    }
 
-  useEffect(() => {
-    const cancel = fetchAll()
-    // Auto-refresh every hour
-    const t = setInterval(fetchAll, 3600000)
-    return () => { cancel(); clearInterval(t) }
-  }, [fetchAll])
+    fetchAll()
+    timer = setInterval(fetchAll, 3600000)
+    fetchRef.current = fetchAll
+    return () => { cancelled = true; clearInterval(timer); fetchRef.current = null }
+  }, [])
 
   return (
     <div className="bg-[#0A0F14] h-full overflow-y-auto">
-      <TopBar active="indicators" onHome={() => onNavigate('home')} onStocks={() => onNavigate('dashboard')} onIndicators={() => onNavigate('indicators')} onNews={() => onNavigate('news')} onChat={() => onNavigate('chat')} onAlerts={() => onNavigate('alerts')} />
+      <TopBar active="indicators" onHome={() => onNavigate('home')} onStocks={() => onNavigate('dashboard')} onIndicators={() => onNavigate('indicators')} onNews={() => onNavigate('news')} onChat={() => onNavigate('chat')} onAlerts={() => onNavigate('alerts')} onVip={() => onNavigate('vip')} />
       <div className="pt-3"><MarketBar quotes={quotes} /></div>
       <div className="px-4 pt-5 pb-2 flex items-center justify-between">
         <div className="flex items-center gap-1.5">
@@ -122,11 +120,10 @@ export default function IndicatorsPage({ onNavigate }) {
           )}
         </div>
         <button
-          onClick={fetchAll}
-          disabled={refreshing}
-          className="text-[#4D545C] hover:text-[#8D949E] transition-colors disabled:opacity-40"
+          onClick={() => fetchRef.current?.()}
+          className="w-7 h-7 rounded-lg flex items-center justify-center bg-[#1A2129] text-[#8D949E] hover:bg-[#242B33] hover:text-[#F0F2F5] active:scale-90 transition-all"
         >
-          <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
+          <RefreshCw size={13} className={spin ? 'animate-spin' : ''} />
         </button>
       </div>
       <div className="px-4 pb-6 grid grid-cols-2 gap-2">

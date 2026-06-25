@@ -15,10 +15,10 @@ function fmtTime(d) {
 export default function NewsPage({ onNavigate }) {
   const [tab, setTab] = useState('全部')
   const [rssNews, setRssNews] = useState({ stock: [], commodity: [], macro: [] })
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(true); const [spin, setSpin] = useState(false)
 
   const fetchAll = useCallback(async () => {
-    setLoading(true)
+    setLoading(true); setSpin(true)
     try {
       const urls = ['/api/rss-news?type=stock', '/api/rss-news?type=commodity', '/api/macro-news']
       const responses = await Promise.all(urls.map(u => fetch(u).catch(() => ({ json: () => [] }))))
@@ -34,7 +34,7 @@ export default function NewsPage({ onNavigate }) {
       const macro = Array.isArray(data[2]) ? data[2] : []
       setRssNews({ stock, commodity, macro })
     } catch(e) {}
-    setLoading(false)
+    setLoading(false); setTimeout(() => setSpin(false), 600)
   }, [])
 
   useEffect(() => {
@@ -59,7 +59,7 @@ export default function NewsPage({ onNavigate }) {
 
   return (
     <div className="overflow-y-auto bg-[#0A0F14] h-full">
-      <TopBar active="news" onHome={() => onNavigate('home')} onStocks={() => onNavigate('dashboard')} onIndicators={() => onNavigate('indicators')} onNews={() => onNavigate('news')} onChat={() => onNavigate('chat')} onAlerts={() => onNavigate('alerts')} />
+      <TopBar active="news" onHome={() => onNavigate('home')} onStocks={() => onNavigate('dashboard')} onIndicators={() => onNavigate('indicators')} onNews={() => onNavigate('news')} onChat={() => onNavigate('chat')} onAlerts={() => onNavigate('alerts')} onVip={() => onNavigate('vip')} />
 
       <div className="px-4 pt-2 pb-2 flex items-center justify-between sticky top-[52px] bg-[#0A0F14] z-10">
         <div className="flex gap-1.5">
@@ -68,7 +68,7 @@ export default function NewsPage({ onNavigate }) {
               className={`px-3 py-1.5 rounded-md text-xs font-medium ${tab===t ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>{t}</button>
           ))}
         </div>
-        <button onClick={fetchAll} className="text-[#4D545C] hover:text-[#8D949E]"><RefreshCw size={14} className={loading?'animate-spin':''} /></button>
+        <button onClick={fetchAll} className="w-7 h-7 rounded-lg flex items-center justify-center bg-[#1A2129] text-[#8D949E] hover:bg-[#242B33] hover:text-[#F0F2F5] active:scale-90 transition-all"><RefreshCw size={14} className={spin?'animate-spin':''} /></button>
       </div>
 
       <div className="px-4 flex flex-col gap-1.5 pb-8">

@@ -91,7 +91,7 @@ export default function ChatPage({ onNavigate }) {
   // Join screen
   if (!joined) return (
     <div className="bg-[#0A0F14] h-full flex flex-col">
-      <TopBar active="chat" onHome={() => onNavigate('home')} onStocks={() => onNavigate('dashboard')} onIndicators={() => onNavigate('indicators')} onNews={() => onNavigate('news')} onChat={() => onNavigate('chat')} onAlerts={() => onNavigate('alerts')} />
+      <TopBar active="chat" onHome={() => onNavigate('home')} onStocks={() => onNavigate('dashboard')} onIndicators={() => onNavigate('indicators')} onNews={() => onNavigate('news')} onChat={() => onNavigate('chat')} onAlerts={() => onNavigate('alerts')} onVip={() => onNavigate('vip')} />
       <div className="flex-1 flex items-center justify-center">
         <div className="flex flex-col gap-4 w-64">
           <div className="text-center"><MessageCircle size={40} className="text-[#3B82F6] mx-auto mb-3" /><div className="text-lg font-bold text-[#F0F2F5]">烽火台聊天室</div><div className="text-xs text-[#8D949E] mt-1">{connected ? <><span className="inline-block w-2 h-2 rounded-full bg-[#22C55E] mr-1" />已连接</> : '连接中...'}</div></div>
@@ -104,7 +104,7 @@ export default function ChatPage({ onNavigate }) {
 
   return (
     <div className="bg-[#0A0F14] h-full overflow-hidden flex flex-col">
-      <TopBar active="chat" onHome={() => onNavigate('home')} onStocks={() => onNavigate('dashboard')} onIndicators={() => onNavigate('indicators')} onNews={() => onNavigate('news')} onChat={() => onNavigate('chat')} onAlerts={() => onNavigate('alerts')} />
+      <TopBar active="chat" onHome={() => onNavigate('home')} onStocks={() => onNavigate('dashboard')} onIndicators={() => onNavigate('indicators')} onNews={() => onNavigate('news')} onChat={() => onNavigate('chat')} onAlerts={() => onNavigate('alerts')} onVip={() => onNavigate('vip')} />
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
         {msgs.map((m) => (
           <div key={m.id} className={`flex ${m.user === nick ? 'justify-end' : 'justify-start'}`}>

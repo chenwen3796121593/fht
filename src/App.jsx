@@ -5,6 +5,7 @@ import ChatPage from './pages/ChatPage'
 import NewsPage from './pages/NewsPage'
 import AlertsPage from './pages/AlertsPage'
 import IndicatorsPage from './pages/IndicatorsPage'
+import VipPage from './pages/VipPage'
 
 export default function App() {
   const [page, setPage] = useState('home')
@@ -17,6 +18,7 @@ export default function App() {
       {page === 'chat' && <ChatPage onNavigate={setPage} />}
       {page === 'news' && <NewsPage onNavigate={setPage} />}
       {page === 'alerts' && <AlertsPage onNavigate={setPage} />}
+      {page === 'vip' && <VipPage onNavigate={setPage} />}
     </div>
   )
 }
