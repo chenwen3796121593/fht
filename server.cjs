@@ -112,26 +112,25 @@ const server = http.createServer((req, res) => {
     return
   }
 
-  // === Precious metals (beijingrtj.com) ===
+  // === Precious metals (Sina futures, RMB) ===
   if (req.url.startsWith('/api/metals')) {
-    http.get({ hostname: 'www.beijingrtj.com', path: '/admin/get_price5.php?t=' + Date.now(), headers: { 'User-Agent': 'Mozilla/5.0' } }, (sRes) => {
+    const codes = ['nf_AU0','nf_AG0','nf_PT0','nf_PD0']
+    const names = ['黄金','白银','铂金','钯金']
+    http.get({ hostname: 'hq.sinajs.cn', path: '/list=' + codes.join(','), headers: { Referer: 'https://finance.sina.com.cn' } }, (sRes) => {
       const chunks = []; sRes.on('data', c => chunks.push(c))
       sRes.on('end', () => {
         try {
-          const text = Buffer.concat(chunks).toString()
-          const rs = text.split(',')
-          if (rs.length < 17) return sendJson([])
-          sendJson([
-            { name: '黄金', buy: rs[1], sell: rs[2], time: rs[16] },
-            { name: '白银', buy: rs[3], sell: rs[4], time: rs[16] },
-            { name: '铂金', buy: rs[5], sell: rs[6], time: rs[16] },
-            { name: '钯金', buy: rs[7], sell: rs[8], time: rs[16] },
-            { name: '千足金', buy: rs[11], sell: '', time: rs[16] },
-            { name: '18K（黄金）', buy: rs[12], sell: '', time: rs[16] },
-            { name: 'Pt950', buy: rs[13], sell: '', time: rs[16] },
-            { name: 'Pd990', buy: rs[14], sell: '', time: rs[16] },
-            { name: 'Ag925', buy: rs[15], sell: '', time: rs[16] },
-          ])
+          const text = iconv.decode(Buffer.concat(chunks), 'gbk')
+          const lines = text.split('\n').filter(l => l.trim())
+          const result = codes.map((code, i) => {
+            const line = lines.find(l => l.includes(code))
+            if (!line) return { name: names[i], price: '--' }
+            const parts = line.replace(/^var hq_str_\w+="?/,'').replace(/";?\s*$/, '').split(',')
+            let price = parseFloat(parts[8]) || parseFloat(parts[6]) || 0 // 卖价, fallback to 最新价
+            if (code === 'nf_AG0') price = price / 1000
+            return { name: names[i], price: price.toFixed(2) }
+          })
+          sendJson(result)
         } catch(e) { sendJson([]) }
       })
     }).on('error', () => sendJson([]))

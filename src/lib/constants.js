@@ -37,11 +37,12 @@ export const DEFAULT_WATCHLIST = [
   { symbol: 'hf_AHD', name: 'LME铝' },
 ]
 
-// K线缓存 key 格式化
-export function cacheKey(symbol, range) {
-  return `kline_${symbol}_${range}`
-}
-
-export function todayStr() {
-  return new Date().toDateString()
+// Symbol normalization: add exchange prefix
+export function normalizeSymbol(sym) {
+  if (!sym) return ''
+  if (sym.startsWith('sh') || sym.startsWith('sz') || sym.startsWith('bj') || sym.startsWith('hf_') || sym.startsWith('nf_')) return sym
+  if (sym.startsWith('6')) return 'sh' + sym
+  if (sym.startsWith('0') || sym.startsWith('3')) return 'sz' + sym
+  if (sym.startsWith('8') || sym.startsWith('4')) return 'bj' + sym
+  return sym
 }

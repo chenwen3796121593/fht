@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
+import { normalizeSymbol } from '../lib/constants.js'
 
 const NAME_MAP = {
   '茅台': 'sh600519', '贵州茅台': 'sh600519',
@@ -56,20 +57,16 @@ export default function Watchlist({ selected, onSelect, prices = {}, customStock
     let symbol = NAME_MAP[input] || input
     let name = input
 
-    // Try prefix auto-fix
-    if (!symbol.startsWith('sh') && !symbol.startsWith('sz') && !symbol.startsWith('bj') && !symbol.startsWith('hf_') && !symbol.startsWith('nf_')) {
-      if (/^[0-9]/.test(symbol)) {
-        if (symbol.startsWith('6')) symbol = 'sh' + symbol
-        else if (symbol.startsWith('0') || symbol.startsWith('3')) symbol = 'sz' + symbol
-        else if (symbol.startsWith('8') || symbol.startsWith('4')) symbol = 'bj' + symbol
-      } else {
-        // Search via CF Worker
-        try {
-          const res = await fetch('/api/search?q=' + encodeURIComponent(input))
-          const json = await res.json()
-          if (json.code) { symbol = json.code; name = input }
-        } catch(e) {}
-      }
+    // Try prefix auto-fix, or search if not a known name
+    const normalized = normalizeSymbol(symbol)
+    if (normalized !== symbol && /^[0-9]/.test(symbol)) {
+      symbol = normalized
+    } else if (!NAME_MAP[input]) {
+      try {
+        const res = await fetch('/api/search?q=' + encodeURIComponent(input))
+        const json = await res.json()
+        if (json.code) { symbol = json.code; name = input }
+      } catch(e) {}
     }
 
     if (NAME_MAP[input]) name = Object.keys(NAME_MAP).find(k => NAME_MAP[k] === symbol) || input

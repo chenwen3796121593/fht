@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { createChart, ColorType, CandlestickSeries, HistogramSeries } from 'lightweight-charts'
+import { normalizeSymbol } from '../lib/constants.js'
 
 function fmtPrice(v, symbol) {
   if (v == null) return '--'
@@ -29,12 +30,7 @@ export default function StockChart({ symbol, name, priceData }) {
   useEffect(() => {
     let cancelled = false; setLoading(true); setKdata(null)
 
-    let apiSymbol = symbol
-    if (!apiSymbol.startsWith('sh') && !apiSymbol.startsWith('sz') && !apiSymbol.startsWith('bj') && !apiSymbol.startsWith('hf_') && !apiSymbol.startsWith('nf_')) {
-      if (apiSymbol.startsWith('6')) apiSymbol = 'sh' + apiSymbol
-      else if (apiSymbol.startsWith('0') || apiSymbol.startsWith('3')) apiSymbol = 'sz' + apiSymbol
-      else if (apiSymbol.startsWith('8') || apiSymbol.startsWith('4')) apiSymbol = 'bj' + apiSymbol
-    }
+    let apiSymbol = normalizeSymbol(symbol)
 
     const ck = `kline_${apiSymbol}_${range}`
 
@@ -102,7 +98,9 @@ export default function StockChart({ symbol, name, priceData }) {
     return d
   }, [kdata, rt, isIntraday, priceData?.high, priceData?.low])
 
-  // lightweight-charts render
+  const toTime = (d) => d.day && d.day.length > 10 ? Math.floor(new Date(d.day).getTime() / 1000) : (d.day || 0)
+
+  // Create chart once when data source changes
   useEffect(() => {
     if (!containerRef.current || !displayData.length) return
     const container = containerRef.current
@@ -123,24 +121,33 @@ export default function StockChart({ symbol, name, priceData }) {
       borderUpColor: '#EF4444', borderDownColor: '#22C55E',
       wickUpColor: '#EF4444', wickDownColor: '#22C55E',
     })
-    candleSeries.setData(displayData.map((d, i) => ({
-      time: d.day && d.day.length > 10 ? Math.floor(new Date(d.day).getTime() / 1000) : (d.day || i),
-      open: d.open, high: d.high, low: d.low, close: d.close,
+    candleSeries.setData(displayData.map(d => ({
+      time: toTime(d), open: d.open, high: d.high, low: d.low, close: d.close,
     })))
 
     const volumeSeries = chart.addSeries(HistogramSeries, { priceFormat: { type: 'volume' }, priceScaleId: '' })
     volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.78, bottom: 0 } })
-    volumeSeries.setData(displayData.map((d, i) => ({
-      time: d.day && d.day.length > 10 ? Math.floor(new Date(d.day).getTime() / 1000) : (d.day || i),
-      value: d.volume || 0,
+    volumeSeries.setData(displayData.map(d => ({
+      time: toTime(d), value: d.volume || 0,
       color: d.close >= d.open ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.4)',
     })))
 
-    chartRef.current = chart
+    // Store refs for incremental updates
+    chartRef.current = { chart, candleSeries, volumeSeries }
     const onResize = () => chart.applyOptions({ width: container.clientWidth })
     window.addEventListener('resize', onResize)
     return () => { window.removeEventListener('resize', onResize); chart.remove(); chartRef.current = null }
-  }, [displayData, isIntraday])
+  }, [kdata, isIntraday])
+
+  // Incremental update: last candle only
+  useEffect(() => {
+    const ref = chartRef.current
+    if (!ref || !displayData.length) return
+    const last = displayData[displayData.length - 1]
+    const t = toTime(last)
+    ref.candleSeries.update({ time: t, open: last.open, high: last.high, low: last.low, close: last.close })
+    ref.volumeSeries.update({ time: t, value: last.volume || 0, color: last.close >= last.open ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.4)' })
+  }, [rt, priceData?.high, priceData?.low])
 
   return (
     <div className="px-4 pb-3">

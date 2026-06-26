@@ -9,8 +9,10 @@ import useAlertChecker from '../hooks/useAlertChecker'
 export default function Dashboard() {
   const { prices, quotes, addExtraSymbol } = useApp()
   const [selected, setSelected] = useState(() => {
-    const saved = localStorage.getItem('fh_selected')
-    return saved ? JSON.parse(saved) : { symbol: 'hf_XAU', name: '现货黄金' }
+    try {
+      const saved = localStorage.getItem('fh_selected')
+      return saved ? JSON.parse(saved) : { symbol: 'hf_XAU', name: '现货黄金' }
+    } catch { return { symbol: 'hf_XAU', name: '现货黄金' } }
   })
   const [customStocks, setCustomStocks] = useState(() => {
     try {

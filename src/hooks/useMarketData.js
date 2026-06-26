@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { POLL_INTERVAL, DEFAULT_SYMBOLS, MARKETBAR_SYMBOLS } from '../lib/constants.js'
+import { POLL_INTERVAL, DEFAULT_SYMBOLS, MARKETBAR_SYMBOLS, normalizeSymbol } from '../lib/constants.js'
 
 const PROXY_URL = '/api/data?list='
 
@@ -70,12 +70,8 @@ export default function useMarketData(extraSymbols = []) {
       const lines = text.split('\n').filter(l => l.trim())
 
       const extraItems = extraSymbols.map(s => {
-        let sym = typeof s === 'string' ? s : s.symbol
+        const sym = normalizeSymbol(typeof s === 'string' ? s : s.symbol)
         const storedName = typeof s === 'string' ? s : (s.name || s.symbol)
-        if (!sym.startsWith('sh') && !sym.startsWith('sz') && !sym.startsWith('bj') && !sym.startsWith('hf_') && !sym.startsWith('nf_')) {
-          if (sym.startsWith('6')) sym = 'sh' + sym
-          else if (sym.startsWith('0') || sym.startsWith('3')) sym = 'sz' + sym
-        }
         return { symbol: sym, name: storedName, type: 'stock' }
       })
       const allItems = [...DEFAULT_SYMBOLS, ...extraItems]

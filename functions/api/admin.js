@@ -58,7 +58,8 @@ export async function onRequest(context) {
 
       const adminUser = env.ADMIN_USER || 'chen'
       const adminPass = env.ADMIN_PASS || '859168'
-      const adminSecret = env.ADMIN_SECRET || 'fh-secret-change-me'
+      const adminSecret = env.ADMIN_SECRET
+      if (!adminSecret) return json({ error: 'Server config error' }, 500)
 
       if (username !== adminUser || password !== adminPass) {
         return json({ error: '用户名或密码错误' }, 401)
