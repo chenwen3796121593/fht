@@ -56,7 +56,7 @@ export default function StockChart({ symbol, name, priceData }) {
           open: parseFloat(d.open), close: parseFloat(d.close),
           high: parseFloat(d.high), low: parseFloat(d.low),
           volume: parseFloat(d.volume) || 0,
-          day: d.day || '',
+          day: d.day || d.date || '',
         })).filter(d => d.open && d.close)
 
         if (parsed.length === 0) { setLoading(false); return }
