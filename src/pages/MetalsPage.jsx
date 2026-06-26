@@ -90,8 +90,8 @@ export default function MetalsPage() {
       {/* Commodity forecast table — always visible, fill data async */}
       <div className="px-4 pb-4">
         <div className="flex items-center gap-2 mb-2 ml-1">
-          <TrendingUp size={14} className="text-[#3B82F6]" />
-          <span className="text-xs font-semibold text-[#F0F2F5]">商品预测</span>
+          <TrendingUp size={18} className="text-[#3B82F6]" />
+          <span className="text-sm font-bold text-[#F0F2F5]">商品预测</span>
           {rankings[0]?.updated && (
             <span className="text-[9px] text-[#4D545C]">
               {new Date(rankings[0].updated).toLocaleString('zh-CN', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' })}
