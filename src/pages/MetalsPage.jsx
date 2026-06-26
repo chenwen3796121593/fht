@@ -1,13 +1,18 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import TopBar from '../components/TopBar'
 import { Banknote } from 'lucide-react'
 
+const SB_URL = 'https://apfdgetfqxgbplariowa.supabase.co'
+const SB_KEY = 'sb_publishable_rb8wBIRHHXMOYSjDs8-LIQ_7jTR2B5o'
+
 export default function MetalsPage() {
   const [data, setData] = useState(null)
+  const [rankings, setRankings] = useState([])
+  const sbRef = useRef(null)
 
+  // ---- Sina metals prices ----
   useEffect(() => {
     let cancelled = false
-    // Instant cache
     const cached = localStorage.getItem('fh_metals')
     if (cached) { try { const p = JSON.parse(cached); if (p.length) setData(p) } catch {} }
 
@@ -26,6 +31,39 @@ export default function MetalsPage() {
     return () => { cancelled = true; clearInterval(t) }
   }, [])
 
+  // ---- Supabase commodity_rankings with real-time ----
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const { createClient } = await import('@supabase/supabase-js')
+      if (cancelled) return
+      const sb = createClient(SB_URL, SB_KEY)
+      sbRef.current = sb
+
+      // Initial fetch
+      const { data: rows } = await sb.from('commodity_rankings').select('*').order('id')
+      if (!cancelled && rows) setRankings(rows)
+
+      // Real-time subscription
+      sb.channel('rankings-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'commodity_rankings' }, () => {
+          sb.from('commodity_rankings').select('*').order('id').then(({ data: fresh }) => {
+            if (fresh) setRankings(fresh)
+          })
+        }).subscribe()
+    })()
+    return () => { cancelled = true; try { sbRef.current?.removeAllChannels() } catch {} }
+  }, [])
+
+  // Pivot: group by name
+  const names = [...new Set(rankings.map(r => r.name))]
+  const getTarget = (name, horizon) => {
+    const r = rankings.find(x => x.name === name && x.horizon === horizon)
+    if (!r) return '--'
+    const sign = r.pct >= 0 ? '+' : ''
+    return sign + r.target.toFixed(1)
+  }
+
   return (
     <div className="bg-[#0A0F14] h-full overflow-y-auto">
       <TopBar active="metals" />
@@ -34,7 +72,8 @@ export default function MetalsPage() {
         <span className="text-sm font-bold text-[#F0F2F5]">贵金属行情</span>
       </div>
 
-      <div className="px-4 pb-4">
+      {/* Sina metals table */}
+      <div className="px-4 pb-6">
         <div className="bg-[#12161C] border border-[#242B33] rounded-xl overflow-hidden">
           <div className="grid grid-cols-2 gap-2 px-3 py-2 text-[10px] text-[#4D545C] border-b border-[#242B33] bg-[#0D1117]">
             <span>品种</span><span className="text-right">销售价(元/克)</span>
@@ -48,6 +87,39 @@ export default function MetalsPage() {
         </div>
       </div>
 
+      {/* Commodity forecast table */}
+      {names.length > 0 && (
+        <div className="px-4 pb-4">
+          <div className="flex items-center gap-2 mb-2 ml-1">
+            <span className="text-xs font-semibold text-[#F0F2F5]">商品预测</span>
+            {rankings[0]?.updated && (
+              <span className="text-[9px] text-[#4D545C]">
+                {new Date(rankings[0].updated).toLocaleString('zh-CN', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' })}
+              </span>
+            )}
+          </div>
+          <div className="bg-[#12161C] border border-[#242B33] rounded-xl overflow-hidden">
+            <div className="grid grid-cols-5 gap-1 px-2 py-2 text-[9px] text-[#4D545C] border-b border-[#242B33] bg-[#0D1117]">
+              <span>品种</span><span className="text-right">现价</span><span className="text-right">7天</span><span className="text-right">14天</span><span className="text-right">30天</span>
+            </div>
+            {names.map((name, i) => {
+              const r = rankings.find(x => x.name === name)
+              return (
+                <div key={name} className={`grid grid-cols-5 gap-1 px-2 py-2.5 items-center ${i % 2 ? 'bg-[#0D1117]' : 'bg-[#12161C]'}`}>
+                  <span className="text-[10px] font-medium text-[#F0F2F5] truncate">{name}</span>
+                  <span className="text-[10px] text-[#F0F2F5] text-right tabular-nums">{r ? r.current.toFixed(1) : '--'}</span>
+                  <span className="text-[10px] text-right tabular-nums" style={{ color: (rankings.find(x=>x.name===name&&x.horizon==='7d')?.pct||0)>=0?'#EF4444':'#22C55E' }}>{getTarget(name, '7d')}</span>
+                  <span className="text-[10px] text-right tabular-nums" style={{ color: (rankings.find(x=>x.name===name&&x.horizon==='14d')?.pct||0)>=0?'#EF4444':'#22C55E' }}>{getTarget(name, '14d')}</span>
+                  <span className="text-[10px] text-right tabular-nums" style={{ color: (rankings.find(x=>x.name===name&&x.horizon==='30d')?.pct||0)>=0?'#EF4444':'#22C55E' }}>{getTarget(name, '30d')}</span>
+                </div>
+              )
+            })}
+          </div>
+          <div className="text-[9px] text-[#4D545C] mt-2 text-center">免责声明：AI预测基于历史统计规律，不构成投资建议。</div>
+        </div>
+      )}
+
+      {/* Footer */}
       <div className="px-4 flex items-center justify-center gap-8 pb-6">
         <div className="text-[10px] text-[#6B7280] leading-relaxed text-center">
           <div>回购黄金/铂金/钯金/银</div>
