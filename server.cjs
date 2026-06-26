@@ -2,9 +2,6 @@ const http = require('http')
 const https = require('https')
 const iconv = require('iconv-lite')
 
-const ITICK_KEY = process.env.ITICK_KEY || 'd85feb46383545639ddcd24667a3c89c7e66ab17a8a34dce89e20c5e4576f4c3'
-const FOREX_MAP = { XAU: 'XAUUSD', XAG: 'XAGUSD' }
-const FUTURE_MAP = { CL: 'CL', HG: 'HG', AHD: 'ALI' }
 
 const server = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -45,32 +42,6 @@ const server = http.createServer((req, res) => {
     const commCode = cMap[symbol]
 
     // Intraday via iTick: gold/silver→forex, others→futures
-    if (commCode && isIntraday) {
-      let hostname, path
-      if (FOREX_MAP[commCode]) {
-        hostname = 'api.itick.org'
-        path = `/forex/kline?region=GB&code=${FOREX_MAP[commCode]}&kType=3&limit=240`
-      } else if (FUTURE_MAP[commCode]) {
-        hostname = 'api.itick.org'
-        path = `/future/kline?region=US&code=${FUTURE_MAP[commCode]}&kType=2&limit=240`
-      } else { sendJson([]); return }
-      https.get({ hostname, path, headers: { accept: 'application/json', token: ITICK_KEY } }, (sRes) => {
-        const chunks = []; sRes.on('data', c => chunks.push(c))
-        sRes.on('end', () => {
-          try {
-            const json = JSON.parse(Buffer.concat(chunks).toString())
-            const bars = json?.data?.kLineList || json?.data?.kLines || json?.data || []
-            const parsed = (Array.isArray(bars) ? bars : []).map(b => ({
-              open: parseFloat(b.o || b.open) || 0, close: parseFloat(b.c || b.close) || 0,
-              high: parseFloat(b.h || b.high) || 0, low: parseFloat(b.l || b.low) || 0,
-              volume: parseFloat(b.v || b.volume) || 0,
-            })).filter(b => b.open && b.close)
-            sendJson(parsed)
-          } catch(e) { sendJson([]) }
-        })
-      }).on('error', () => sendJson([]))
-      return
-    }
 
     // Intraday: domestic futures / China stocks via Sina
     if (symbol.startsWith('nf_') && isIntraday) {
@@ -93,7 +64,7 @@ const server = http.createServer((req, res) => {
     if (commCode) {
       https.get({ hostname: 'stock2.finance.sina.com.cn', path: `/futures/api/json_v2.php/GlobalFuturesService.getGlobalFuturesDailyKLine?symbol=${commCode}`, headers: { Referer: 'https://finance.sina.com.cn' } }, (sRes) => {
         const chunks = []; sRes.on('data', c => chunks.push(c))
-        sRes.on('end', () => { try { sendJson(JSON.parse(iconv.decode(Buffer.concat(chunks), 'gbk')) || []) } catch(e) { sendJson([]) } })
+        sRes.on('end', () => { try { const arr = JSON.parse(iconv.decode(Buffer.concat(chunks), 'gbk')) || []; sendJson(Array.isArray(arr) ? arr.slice(-300) : []) } catch(e) { sendJson([]) } })
       }).on('error', () => sendJson([]))
       return
     }
@@ -101,7 +72,7 @@ const server = http.createServer((req, res) => {
       const innerCode = symbol.replace('nf_', '')
       https.get({ hostname: 'stock2.finance.sina.com.cn', path: `/futures/api/json_v2.php/IndexService.getInnerFuturesDailyKLine?symbol=${innerCode}`, headers: { Referer: 'https://finance.sina.com.cn' } }, (sRes) => {
         const chunks = []; sRes.on('data', c => chunks.push(c))
-        sRes.on('end', () => { try { sendJson(JSON.parse(iconv.decode(Buffer.concat(chunks), 'gbk')) || []) } catch(e) { sendJson([]) } })
+        sRes.on('end', () => { try { const arr = JSON.parse(iconv.decode(Buffer.concat(chunks), 'gbk')) || []; sendJson(Array.isArray(arr) ? arr.slice(-300) : []) } catch(e) { sendJson([]) } })
       }).on('error', () => sendJson([]))
       return
     }
