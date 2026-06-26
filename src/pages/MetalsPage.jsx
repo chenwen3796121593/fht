@@ -59,9 +59,9 @@ export default function MetalsPage() {
   const names = [...new Set(rankings.map(r => r.name))]
   const getTarget = (name, horizon) => {
     const r = rankings.find(x => x.name === name && x.horizon === horizon)
-    if (!r) return '--'
-    const sign = r.pct >= 0 ? '+' : ''
-    return sign + r.target.toFixed(1)
+    if (!r) return { val: '--', up: false }
+    const up = r.target > r.current
+    return { val: (up ? '+' : '') + r.target.toFixed(1), up }
   }
 
   return (
@@ -108,9 +108,9 @@ export default function MetalsPage() {
                 <div key={name} className={`grid grid-cols-5 gap-1 px-2 py-2.5 items-center ${i % 2 ? 'bg-[#0D1117]' : 'bg-[#12161C]'}`}>
                   <span className="text-[10px] font-medium text-[#F0F2F5] truncate">{name}</span>
                   <span className="text-[10px] text-[#F0F2F5] text-right tabular-nums">{r ? r.current.toFixed(1) : '--'}</span>
-                  <span className="text-[10px] text-right tabular-nums" style={{ color: (rankings.find(x=>x.name===name&&x.horizon==='7d')?.pct||0)>=0?'#EF4444':'#22C55E' }}>{getTarget(name, '7d')}</span>
-                  <span className="text-[10px] text-right tabular-nums" style={{ color: (rankings.find(x=>x.name===name&&x.horizon==='14d')?.pct||0)>=0?'#EF4444':'#22C55E' }}>{getTarget(name, '14d')}</span>
-                  <span className="text-[10px] text-right tabular-nums" style={{ color: (rankings.find(x=>x.name===name&&x.horizon==='30d')?.pct||0)>=0?'#EF4444':'#22C55E' }}>{getTarget(name, '30d')}</span>
+                  {(() => { const t = getTarget(name, '7d'); return <span className="text-[10px] text-right tabular-nums" style={{ color: t.up ? '#EF4444' : '#22C55E' }}>{t.val}</span> })()}
+                  {(() => { const t = getTarget(name, '14d'); return <span className="text-[10px] text-right tabular-nums" style={{ color: t.up ? '#EF4444' : '#22C55E' }}>{t.val}</span> })()}
+                  {(() => { const t = getTarget(name, '30d'); return <span className="text-[10px] text-right tabular-nums" style={{ color: t.up ? '#EF4444' : '#22C55E' }}>{t.val}</span> })()}
                 </div>
               )
             })}
