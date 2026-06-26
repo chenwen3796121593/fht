@@ -87,8 +87,8 @@ export default function MetalsPage() {
         </div>
       </div>
 
-      {/* Commodity forecast table — always visible, fill data async */}
-      <div className="px-4 pb-4">
+      {/* Commodity forecast table — fixed layout, never reflows */}
+      <div className="px-4 pb-4 flex-shrink-0">
         <div className="flex items-center gap-2 mb-2 ml-1">
           <TrendingUp size={18} className="text-[#3B82F6]" />
           <span className="text-sm font-bold text-[#F0F2F5]">商品预测</span>
@@ -113,9 +113,15 @@ export default function MetalsPage() {
                 {(() => { const t = getTarget(name, '30d'); return <span className="text-[10px] text-right tabular-nums" style={{ color: t.up ? '#EF4444' : '#22C55E' }}>{t.val}</span> })()}
               </div>
             )
-          }) : (
-            <div className="px-2 py-6 text-[10px] text-[#4D545C] text-center">加载中...</div>
-          )}
+          }) : [1,2,3].map(i => (
+            <div key={i} className={`grid grid-cols-5 gap-1 px-2 py-2.5 items-center ${i % 2 ? 'bg-[#0D1117]' : 'bg-[#12161C]'}`}>
+              <span className="text-[10px] text-[#4D545C]">--</span>
+              <span className="text-[10px] text-[#4D545C] text-right">--</span>
+              <span className="text-[10px] text-[#4D545C] text-right">--</span>
+              <span className="text-[10px] text-[#4D545C] text-right">--</span>
+              <span className="text-[10px] text-[#4D545C] text-right">--</span>
+            </div>
+          ))}
         </div>
         <div className="text-[9px] text-[#4D545C] mt-2 text-center">免责声明：AI预测基于历史统计规律，不构成投资建议。</div>
       </div>
