@@ -8,6 +8,7 @@ const SB_KEY = 'sb_publishable_rb8wBIRHHXMOYSjDs8-LIQ_7jTR2B5o'
 export default function MetalsPage() {
   const [data, setData] = useState(null)
   const [rankings, setRankings] = useState([])
+  const [rowCount, setRowCount] = useState(() => { try { return parseInt(localStorage.getItem('fh_forecast_rows')) || 6 } catch { return 6 } })
   const sbRef = useRef(null)
 
   // ---- Sina metals prices ----
@@ -41,7 +42,12 @@ export default function MetalsPage() {
       sbRef.current = sb
 
       const { data: rows } = await sb.from('commodity_rankings').select('*').order('id')
-      if (!cancelled && rows) setRankings(rows)
+      if (!cancelled && rows) {
+        setRankings(rows)
+        const n = [...new Set(rows.map(r => r.name))].length
+        setRowCount(n)
+        localStorage.setItem('fh_forecast_rows', n)
+      }
 
       sb.channel('rankings-changes')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'commodity_rankings' }, () => {
@@ -116,7 +122,7 @@ export default function MetalsPage() {
           </div>
           {names.length > 0
             ? names.map((name, i) => <ForecastRow key={name} name={name} i={i} />)
-            : [1,2,3].map(i => <PlaceholderRow key={i} i={i} />)
+            : Array.from({length: rowCount}).map((_, i) => <PlaceholderRow key={i} i={i} />)
           }
         </div>
         <div className="text-[9px] text-[#4D545C] text-center mb-6">免责声明：AI预测基于历史统计规律，不构成投资建议。</div>
