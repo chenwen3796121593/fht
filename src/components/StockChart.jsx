@@ -98,8 +98,13 @@ export default function StockChart({ symbol, name, priceData }) {
     return d
   }, [kdata, rt, isIntraday, priceData?.high, priceData?.low])
 
-  const toCandle = (d, i) => ({ time: d.day || i, open: d.open, high: d.high, low: d.low, close: d.close })
-  const toVol = (d, i) => ({ time: d.day || i, value: d.volume || 0, color: d.close >= d.open ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.4)' })
+  const toTime = (d, i) => {
+    if (!d.day) return i
+    // Intraday has time component → Unix timestamp; daily → date string
+    return d.day.length > 10 ? Math.floor(new Date(d.day).getTime() / 1000) : d.day
+  }
+  const toCandle = (d, i) => ({ time: toTime(d, i), open: d.open, high: d.high, low: d.low, close: d.close })
+  const toVol = (d, i) => ({ time: toTime(d, i), value: d.volume || 0, color: d.close >= d.open ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.4)' })
 
   // Create chart once when kdata changes
   useEffect(() => {
