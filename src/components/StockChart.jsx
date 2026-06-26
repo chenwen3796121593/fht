@@ -99,55 +99,41 @@ export default function StockChart({ symbol, name, priceData }) {
   }, [kdata, rt, isIntraday, priceData?.high, priceData?.low])
 
   const toTime = (d) => d.day && d.day.length > 10 ? Math.floor(new Date(d.day).getTime() / 1000) : (d.day || 0)
+  const toCandle = (d) => ({ time: toTime(d), open: d.open, high: d.high, low: d.low, close: d.close })
+  const toVol = (d) => ({ time: toTime(d), value: d.volume || 0, color: d.close >= d.open ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.4)' })
 
-  // Create chart once when data source changes
+  // Create chart once when kdata changes
   useEffect(() => {
     if (!containerRef.current || !displayData.length) return
     const container = containerRef.current
-    if (chartRef.current) { chartRef.current.remove(); chartRef.current = null }
+    if (chartRef.current) { chartRef.current.chart.remove(); chartRef.current = null }
 
     const chart = createChart(container, {
-      width: container.clientWidth,
-      height: 220,
+      width: container.clientWidth, height: 220,
       layout: { background: { type: ColorType.Solid, color: '#0D1117' }, textColor: '#4D545C' },
       grid: { vertLines: { color: '#1A2129' }, horzLines: { color: '#1A2129' } },
       crosshair: { mode: 0 },
       rightPriceScale: { borderColor: '#242B33', scaleMargins: { top: 0.05, bottom: 0.25 } },
       timeScale: { borderColor: '#242B33', timeVisible: isIntraday, secondsVisible: false },
     })
-
-    const candleSeries = chart.addSeries(CandlestickSeries, {
-      upColor: '#EF4444', downColor: '#22C55E',
-      borderUpColor: '#EF4444', borderDownColor: '#22C55E',
-      wickUpColor: '#EF4444', wickDownColor: '#22C55E',
-    })
-    candleSeries.setData(displayData.map(d => ({
-      time: toTime(d), open: d.open, high: d.high, low: d.low, close: d.close,
-    })))
-
-    const volumeSeries = chart.addSeries(HistogramSeries, { priceFormat: { type: 'volume' }, priceScaleId: '' })
-    volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.78, bottom: 0 } })
-    volumeSeries.setData(displayData.map(d => ({
-      time: toTime(d), value: d.volume || 0,
-      color: d.close >= d.open ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.4)',
-    })))
-
-    // Store refs for incremental updates
-    chartRef.current = { chart, candleSeries, volumeSeries }
+    const cs = chart.addSeries(CandlestickSeries, { upColor: '#EF4444', downColor: '#22C55E', borderUpColor: '#EF4444', borderDownColor: '#22C55E', wickUpColor: '#EF4444', wickDownColor: '#22C55E' })
+    const vs = chart.addSeries(HistogramSeries, { priceFormat: { type: 'volume' }, priceScaleId: '' })
+    vs.priceScale().applyOptions({ scaleMargins: { top: 0.78, bottom: 0 } })
+    cs.setData(displayData.map(toCandle))
+    vs.setData(displayData.map(toVol))
+    chartRef.current = { chart, cs, vs }
     const onResize = () => chart.applyOptions({ width: container.clientWidth })
     window.addEventListener('resize', onResize)
     return () => { window.removeEventListener('resize', onResize); chart.remove(); chartRef.current = null }
   }, [kdata, isIntraday])
 
-  // Incremental update: last candle only
+  // Refresh all data when displayData changes (real-time updates without recreating chart)
   useEffect(() => {
     const ref = chartRef.current
     if (!ref || !displayData.length) return
-    const last = displayData[displayData.length - 1]
-    const t = toTime(last)
-    ref.candleSeries.update({ time: t, open: last.open, high: last.high, low: last.low, close: last.close })
-    ref.volumeSeries.update({ time: t, value: last.volume || 0, color: last.close >= last.open ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.4)' })
-  }, [rt, priceData?.high, priceData?.low])
+    ref.cs.setData(displayData.map(toCandle))
+    ref.vs.setData(displayData.map(toVol))
+  }, [displayData])
 
   return (
     <div className="px-4 pb-3">
