@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import TopBar from '../components/TopBar'
-import { Banknote } from 'lucide-react'
+import { Banknote, TrendingUp } from 'lucide-react'
 
 const SB_URL = 'https://apfdgetfqxgbplariowa.supabase.co'
 const SB_KEY = 'sb_publishable_rb8wBIRHHXMOYSjDs8-LIQ_7jTR2B5o'
@@ -87,37 +87,38 @@ export default function MetalsPage() {
         </div>
       </div>
 
-      {/* Commodity forecast table */}
-      {names.length > 0 && (
-        <div className="px-4 pb-4">
-          <div className="flex items-center gap-2 mb-2 ml-1">
-            <span className="text-xs font-semibold text-[#F0F2F5]">商品预测</span>
-            {rankings[0]?.updated && (
-              <span className="text-[9px] text-[#4D545C]">
-                {new Date(rankings[0].updated).toLocaleString('zh-CN', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' })}
-              </span>
-            )}
-          </div>
-          <div className="bg-[#12161C] border border-[#242B33] rounded-xl overflow-hidden">
-            <div className="grid grid-cols-5 gap-1 px-2 py-2 text-[9px] text-[#4D545C] border-b border-[#242B33] bg-[#0D1117]">
-              <span>品种</span><span className="text-right">现价</span><span className="text-right">7天</span><span className="text-right">14天</span><span className="text-right">30天</span>
-            </div>
-            {names.map((name, i) => {
-              const r = rankings.find(x => x.name === name)
-              return (
-                <div key={name} className={`grid grid-cols-5 gap-1 px-2 py-2.5 items-center ${i % 2 ? 'bg-[#0D1117]' : 'bg-[#12161C]'}`}>
-                  <span className="text-[10px] font-medium text-[#F0F2F5] truncate">{name}</span>
-                  <span className="text-[10px] text-[#F0F2F5] text-right tabular-nums">{r ? r.current.toFixed(1) : '--'}</span>
-                  {(() => { const t = getTarget(name, '7d'); return <span className="text-[10px] text-right tabular-nums" style={{ color: t.up ? '#EF4444' : '#22C55E' }}>{t.val}</span> })()}
-                  {(() => { const t = getTarget(name, '14d'); return <span className="text-[10px] text-right tabular-nums" style={{ color: t.up ? '#EF4444' : '#22C55E' }}>{t.val}</span> })()}
-                  {(() => { const t = getTarget(name, '30d'); return <span className="text-[10px] text-right tabular-nums" style={{ color: t.up ? '#EF4444' : '#22C55E' }}>{t.val}</span> })()}
-                </div>
-              )
-            })}
-          </div>
-          <div className="text-[9px] text-[#4D545C] mt-2 text-center">免责声明：AI预测基于历史统计规律，不构成投资建议。</div>
+      {/* Commodity forecast table — always visible, fill data async */}
+      <div className="px-4 pb-4">
+        <div className="flex items-center gap-2 mb-2 ml-1">
+          <TrendingUp size={14} className="text-[#3B82F6]" />
+          <span className="text-xs font-semibold text-[#F0F2F5]">商品预测</span>
+          {rankings[0]?.updated && (
+            <span className="text-[9px] text-[#4D545C]">
+              {new Date(rankings[0].updated).toLocaleString('zh-CN', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' })}
+            </span>
+          )}
         </div>
-      )}
+        <div className="bg-[#12161C] border border-[#242B33] rounded-xl overflow-hidden">
+          <div className="grid grid-cols-5 gap-1 px-2 py-2 text-[9px] text-[#4D545C] border-b border-[#242B33] bg-[#0D1117]">
+            <span>品种</span><span className="text-right">现价</span><span className="text-right">7天</span><span className="text-right">14天</span><span className="text-right">30天</span>
+          </div>
+          {names.length > 0 ? names.map((name, i) => {
+            const r = rankings.find(x => x.name === name)
+            return (
+              <div key={name} className={`grid grid-cols-5 gap-1 px-2 py-2.5 items-center ${i % 2 ? 'bg-[#0D1117]' : 'bg-[#12161C]'}`}>
+                <span className="text-[10px] font-medium text-[#F0F2F5] truncate">{name}</span>
+                <span className="text-[10px] text-[#F0F2F5] text-right tabular-nums">{r ? r.current.toFixed(1) : '--'}</span>
+                {(() => { const t = getTarget(name, '7d'); return <span className="text-[10px] text-right tabular-nums" style={{ color: t.up ? '#EF4444' : '#22C55E' }}>{t.val}</span> })()}
+                {(() => { const t = getTarget(name, '14d'); return <span className="text-[10px] text-right tabular-nums" style={{ color: t.up ? '#EF4444' : '#22C55E' }}>{t.val}</span> })()}
+                {(() => { const t = getTarget(name, '30d'); return <span className="text-[10px] text-right tabular-nums" style={{ color: t.up ? '#EF4444' : '#22C55E' }}>{t.val}</span> })()}
+              </div>
+            )
+          }) : (
+            <div className="px-2 py-6 text-[10px] text-[#4D545C] text-center">加载中...</div>
+          )}
+        </div>
+        <div className="text-[9px] text-[#4D545C] mt-2 text-center">免责声明：AI预测基于历史统计规律，不构成投资建议。</div>
+      </div>
 
       {/* Footer */}
       <div className="px-4 flex items-center justify-center gap-8 pb-6">
