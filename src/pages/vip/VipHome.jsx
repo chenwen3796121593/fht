@@ -1,6 +1,6 @@
 import { Crown, Send, Sparkles } from 'lucide-react'
 
-const aiDesc = 'VIP 客户专享预测大模型AI服务：基于多维度市场数据\n与深度学习算法，提供商品趋势预测和智能择时信号。'
+const aiDesc = 'VIP 客户专享预测大模型AI服务：基于多维度市场数据\n与深度学习算法，提供商品股票趋势预测和智能择时信号。'
 
 export default function VipHome({ phone, setPhone, reason, setReason, submitted, submitting, handleApply }) {
   return (

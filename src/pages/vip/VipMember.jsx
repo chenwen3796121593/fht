@@ -19,7 +19,7 @@ export default function VipMember({ currentUser, strategy, handleLogout }) {
         <div className="w-full bg-[#12161C] border border-[#242B33] rounded-xl p-4">
           <div className="flex items-center gap-2 mb-3"><Shield size={16} className="text-[#F59E0B]"/><span className="text-sm font-semibold text-[#F0F2F5]">VIP 专属功能</span></div>
           <div className="grid grid-cols-2 gap-2 text-xs text-[#8D949E]">
-            <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]"/>AI 趋势预测</div>
+            <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]"/>AI 商品股票趋势预测</div>
             <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]"/>实时异动监控</div>
             <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]"/>机构持仓追踪</div>
             <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]"/>深度行业研报</div>
