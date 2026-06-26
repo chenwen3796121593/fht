@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard'
 import ChatPage from './pages/ChatPage'
 import NewsPage from './pages/NewsPage'
 import AlertsPage from './pages/AlertsPage'
+import MetalsPage from './pages/MetalsPage'
 import IndicatorsPage from './pages/IndicatorsPage'
 import VipPage from './pages/VipPage'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -19,6 +20,7 @@ function PageRouter() {
       {currentPage === 'chat' && <ChatPage />}
       {currentPage === 'news' && <NewsPage />}
       {currentPage === 'alerts' && <AlertsPage />}
+      {currentPage === 'metals' && <MetalsPage />}
       {currentPage === 'vip' && <VipPage />}
     </div>
   )

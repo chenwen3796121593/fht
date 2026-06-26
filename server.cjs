@@ -112,7 +112,32 @@ const server = http.createServer((req, res) => {
     return
   }
 
-  // ... rest unchanged ...
+  // === Precious metals (beijingrtj.com) ===
+  if (req.url.startsWith('/api/metals')) {
+    http.get({ hostname: 'www.beijingrtj.com', path: '/admin/get_price5.php?t=' + Date.now(), headers: { 'User-Agent': 'Mozilla/5.0' } }, (sRes) => {
+      const chunks = []; sRes.on('data', c => chunks.push(c))
+      sRes.on('end', () => {
+        try {
+          const text = Buffer.concat(chunks).toString()
+          const rs = text.split(',')
+          if (rs.length < 17) return sendJson([])
+          sendJson([
+            { name: '黄金', buy: rs[1], sell: rs[2], time: rs[16] },
+            { name: '白银', buy: rs[3], sell: rs[4], time: rs[16] },
+            { name: '铂金', buy: rs[5], sell: rs[6], time: rs[16] },
+            { name: '钯金', buy: rs[7], sell: rs[8], time: rs[16] },
+            { name: '千足金', buy: rs[11], sell: '', time: rs[16] },
+            { name: '18K（黄金）', buy: rs[12], sell: '', time: rs[16] },
+            { name: 'Pt950', buy: rs[13], sell: '', time: rs[16] },
+            { name: 'Pd990', buy: rs[14], sell: '', time: rs[16] },
+            { name: 'Ag925', buy: rs[15], sell: '', time: rs[16] },
+          ])
+        } catch(e) { sendJson([]) }
+      })
+    }).on('error', () => sendJson([]))
+    return
+  }
+
   if (req.url.startsWith('/api/flow')) {
     const type = new URL(req.url, 'http://localhost').searchParams.get('type') || 'in'
     const po = type === 'in' ? '1' : '0'

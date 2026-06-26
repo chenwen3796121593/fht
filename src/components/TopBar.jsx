@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Flame, House, TrendingUp, BarChart3, MessageCircle, Bell, Newspaper, Crown } from 'lucide-react'
+import { Flame, House, TrendingUp, BarChart3, MessageCircle, Bell, Newspaper, Crown, Banknote } from 'lucide-react'
 import { useApp } from '../context/AppContext.jsx'
 
 const ICON_SZ = 17
-const PAGES = ['home', 'dashboard', 'indicators', 'news', 'chat', 'alerts', 'vip']
-const ICONS = { home: House, dashboard: TrendingUp, indicators: BarChart3, news: Newspaper, chat: MessageCircle, alerts: Bell, vip: Crown }
+const PAGES = ['home', 'dashboard', 'indicators', 'news', 'chat', 'alerts', 'metals', 'vip']
+const ICONS = { home: House, dashboard: TrendingUp, indicators: BarChart3, news: Newspaper, chat: MessageCircle, alerts: Bell, metals: Banknote, vip: Crown }
 
 function useClock() {
   const [time, setTime] = useState(() => new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }))
@@ -29,7 +29,7 @@ export default function TopBar({ active }) {
       <div className="flex flex-col">
         <div className="flex items-center gap-1">
           <Flame size={22} className="text-orange-400" />
-          <span className="text-sm font-bold text-orange-400 leading-none">烽火台</span>
+          <span className="text-xs font-bold text-orange-400 leading-none">烽火台</span>
         </div>
         <span className="text-xs font-mono tracking-widest text-[#F0F2F5] leading-none mt-0.5" style={{ fontVariantNumeric: 'tabular-nums' }}>{clock}</span>
       </div>
