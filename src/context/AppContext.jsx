@@ -13,7 +13,7 @@ export function AppProvider({ children }) {
   const [breadth, setBreadth] = useState(() => {
     try {
       const raw = localStorage.getItem('fh_breadth')
-      if (raw) { const p = JSON.parse(raw); if (Date.now() - p.ts < 60000) return p.data }
+      if (raw) { const p = JSON.parse(raw); if (Date.now() - p.ts < 300000) return p.data }
     } catch {}
     return null
   })

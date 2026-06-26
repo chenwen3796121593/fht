@@ -12,7 +12,13 @@ const EMOJIS = [
   { icon: Hand, label: '✋' },{ icon: Handshake, label: '🤝' },{ icon: MapPin, label: '📍' },{ icon: Pin, label: '📌' },{ icon: Bookmark, label: '🔖' },{ icon: Shield, label: '🛡️' },{ icon: Ban, label: '🚫' },{ icon: Clover, label: '🍀' },
 ]
 
-function fmtTime(d) { return new Date(d).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) }
+function fmtTime(d) {
+  const dt = new Date(d)
+  const now = new Date()
+  const time = dt.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+  if (dt.toDateString() === now.toDateString()) return time
+  return dt.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }) + ' ' + time
+}
 
 function JoinScreen({ nick, setNick, connected, onJoin }) {
   return (
@@ -70,7 +76,7 @@ export default function ChatPage() {
           const m = payload.new
           setMsgs(prev => {
             if (prev.find(p => p.id === m.id)) return prev
-            const cleaned = prev.filter(p => !(String(p.id).startsWith('tmp_') && p.user === m.username && p.text === m.text))
+            const cleaned = prev.filter(p => !(String(p.id).startsWith('tmp_') && p.user === m.username))
             const next = [...cleaned, { id: m.id, user: m.username, text: m.text, voice_url: m.voice_url, time: fmtTime(m.created_at) }]
             localStorage.setItem('fh_chat_cache', JSON.stringify(next.slice(-30)))
             return next
@@ -110,13 +116,12 @@ export default function ChatPage() {
         if (chunks.length === 0) { setRecording(false); return }
         const tempId = 'tmp_voice_' + Date.now()
         const blob = new Blob(chunks, { type: mimeType })
-        const blobUrl = URL.createObjectURL(blob)
-        setMsgs(prev => { const next = [...prev, { id: tempId, user: nick, text: '', voice_url: blobUrl, time: fmtTime(new Date()) }]; localStorage.setItem('fh_chat_cache', JSON.stringify(next.slice(-30))); return next })
+        setMsgs(prev => { const next = [...prev, { id: tempId, user: nick, text: '🎤 语音消息发送中...', voice_url: '', time: fmtTime(new Date()) }]; localStorage.setItem('fh_chat_cache', JSON.stringify(next.slice(-30))); return next })
         const ext = mimeType.includes('mp4') ? 'mp4' : 'webm'
-        const { error } = await client.storage.from('chat').upload(`voice/${Date.now()}.${ext}`, blob)
-        URL.revokeObjectURL(blobUrl)
+        const filename = `voice/${Date.now()}.${ext}`
+        const { error } = await client.storage.from('chat').upload(filename, blob)
         if (!error) {
-          const { data: urlData } = client.storage.from('chat').getPublicUrl(`voice/${Date.now()}.${ext}`)
+          const { data: urlData } = client.storage.from('chat').getPublicUrl(filename)
           if (urlData?.publicUrl) await client.from('messages').insert({ username: nick, text: '', voice_url: urlData.publicUrl })
         } else { setMsgs(prev => prev.filter(m => m.id !== tempId)) }
         setRecording(false); mediaRef.current = null

@@ -4,44 +4,51 @@ import MarketBar from '../components/MarketBar'
 import { useApp } from '../context/AppContext.jsx'
 import { MACRO_INTERVAL, CACHE_TTL } from '../lib/constants.js'
 import { TrendingUp, Landmark, DollarSign, Banknote, BarChart3 } from 'lucide-react'
+import { createChart, ColorType, LineSeries } from 'lightweight-charts'
 
-function LineChart({ data, lines, shData, width = 170, height = 110 }) {
-  const p = { top: 8, right: 30, bottom: 16, left: 32 }
-  const cw = width - p.left - p.right, ch = height - p.top - p.bottom
+function LineChart({ data, lines, shData, height = 110 }) {
+  const containerRef = useRef(null)
+  const chartRef = useRef(null)
+
+  useEffect(() => {
+    if (!containerRef.current || !data || data.length < 2) return
+    const width = containerRef.current.clientWidth || 170
+    if (chartRef.current) { chartRef.current.remove(); chartRef.current = null }
+
+    const chart = createChart(containerRef.current, {
+      width, height,
+      layout: { background: { type: ColorType.Solid, color: '#0D1117' }, textColor: 'rgba(255,255,255,0.4)' },
+      grid: { vertLines: { visible: false }, horzLines: { visible: false } },
+      crosshair: { mode: 1 },
+      rightPriceScale: { visible: false },
+      timeScale: { visible: false },
+      handleScroll: false, handleScale: false,
+    })
+
+    const chartData = data.map((d, i) => ({ time: i, ...d }))
+    lines.forEach(line => {
+      const s = chart.addSeries(LineSeries, { color: line.color, lineWidth: 1, priceLineVisible: false, lastValueVisible: false })
+      if (line.dash) s.applyOptions({ lineStyle: 2 })
+      s.setData(chartData.map(d => ({ time: d.time, value: d[line.key] || 0 })))
+    })
+
+    if (shData) {
+      const shMap = {}; shData.forEach(s => { shMap[s.date] = s.close })
+      const shVals = data.map(d => shMap[d.date]).filter(v => v != null)
+      if (shVals.length > 1) {
+        const shSeries = chart.addSeries(LineSeries, { color: 'rgba(180,180,180,0.5)', lineWidth: 0.8, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, priceScaleId: 'sh' })
+        chart.priceScale('sh').applyOptions({ visible: false })
+        shSeries.setData(chartData.map(d => ({ time: d.time, value: shMap[d.date] || null })).filter(d => d.value != null))
+      }
+    }
+
+    chart.timeScale().fitContent()
+    chartRef.current = chart
+    return () => { chart.remove(); chartRef.current = null }
+  }, [data, lines, shData, height])
+
   if (!data || data.length < 2) return <div className="text-[9px] text-[#4D545C] text-center py-4">暂无数据</div>
-
-  const allVals = lines.flatMap(l => data.map(d => d[l.key] || 0).filter(v => !isNaN(v)))
-  const lo = Math.min(...allVals), hi = Math.max(...allVals), range = hi - lo || 1
-  const toX = i => p.left + (i / (data.length - 1)) * cw
-  const toY = v => p.top + ((hi - v) / range) * ch
-
-  let hasSh = false, shLo = 0, shHi = 1, shRng = 1
-  const shMap = {}
-  if (shData) {
-    shData.forEach(s => { shMap[s.date] = s.close })
-    const shVals = data.map(d => shMap[d.date]).filter(v => v != null)
-    if (shVals.length > 1) { hasSh = true; shLo = Math.min(...shVals); shHi = Math.max(...shVals); shRng = (shHi - shLo) || 1 }
-  }
-  const ry = v => p.top + ((shHi - v) / shRng) * ch
-
-  return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
-      <rect width={width} height={height} fill="#0D1117" rx={4} />
-      {[0, 0.5, 1].map(f => { const y = p.top + f * ch; return <line key={f} x1={p.left} y1={y} x2={width-p.right} y2={y} stroke="rgba(255,255,255,0.06)" strokeWidth={0.5} /> })}
-      <text x={p.left-2} y={p.top+4} fill="rgba(255,255,255,0.4)" fontSize={7} textAnchor="end">{hi.toFixed(1)}</text>
-      <text x={p.left-2} y={p.top+ch+4} fill="rgba(255,255,255,0.4)" fontSize={7} textAnchor="end">{lo.toFixed(1)}</text>
-      {lines.map((line, li) => (
-        <polyline key={li} fill="none" stroke={line.color} strokeWidth={1} strokeDasharray={line.dash}
-          points={data.map((d, i) => `${toX(i)},${toY(d[line.key]||0)}`).join(' ')} />
-      ))}
-      {hasSh && <>
-        <text x={width-p.right+2} y={p.top+4} fill="rgba(180,180,180,0.45)" fontSize={6} textAnchor="start">{shHi.toFixed(0)}</text>
-        <text x={width-p.right+2} y={p.top+ch+4} fill="rgba(180,180,180,0.45)" fontSize={6} textAnchor="start">{shLo.toFixed(0)}</text>
-        <polyline fill="none" stroke="rgba(180,180,180,0.5)" strokeWidth={0.8} strokeDasharray="3,3"
-          points={data.map((d, i) => shMap[d.date] != null ? `${toX(i)},${ry(shMap[d.date])}` : '').filter(Boolean).join(' ')} />
-      </>}
-    </svg>
-  )
+  return <div ref={containerRef} style={{ width: '100%', height, borderRadius: 4, overflow: 'hidden' }} />
 }
 
 function IndicatorCard({ title, data, lines, rows, loading, shData, icon: Icon }) {
