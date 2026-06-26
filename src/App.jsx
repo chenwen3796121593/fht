@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { AppProvider, useApp } from './context/AppContext.jsx'
 import HomePage from './pages/HomePage'
 import Dashboard from './pages/Dashboard'
 import ChatPage from './pages/ChatPage'
@@ -6,19 +6,30 @@ import NewsPage from './pages/NewsPage'
 import AlertsPage from './pages/AlertsPage'
 import IndicatorsPage from './pages/IndicatorsPage'
 import VipPage from './pages/VipPage'
+import ErrorBoundary from './components/ErrorBoundary'
 
-export default function App() {
-  const [page, setPage] = useState('home')
+function PageRouter() {
+  const { currentPage } = useApp()
 
   return (
-    <div className="bg-[#0A0F14] mx-auto overflow-hidden" style={{ maxWidth: 390, width: '100%', height: '100dvh' }}>
-      {page === 'home' && <HomePage onNavigate={setPage} />}
-      {page === 'dashboard' && <Dashboard onNavigate={setPage} />}
-      {page === 'indicators' && <IndicatorsPage onNavigate={setPage} />}
-      {page === 'chat' && <ChatPage onNavigate={setPage} />}
-      {page === 'news' && <NewsPage onNavigate={setPage} />}
-      {page === 'alerts' && <AlertsPage onNavigate={setPage} />}
-      {page === 'vip' && <VipPage onNavigate={setPage} />}
+    <div className="bg-[#0A0F14] mx-auto overflow-hidden max-sm:max-w-[390px] sm:max-w-[480px] w-full h-dvh">
+      {currentPage === 'home' && <HomePage />}
+      {currentPage === 'dashboard' && <Dashboard />}
+      {currentPage === 'indicators' && <IndicatorsPage />}
+      {currentPage === 'chat' && <ChatPage />}
+      {currentPage === 'news' && <NewsPage />}
+      {currentPage === 'alerts' && <AlertsPage />}
+      {currentPage === 'vip' && <VipPage />}
     </div>
+  )
+}
+
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <AppProvider>
+        <PageRouter />
+      </AppProvider>
+    </ErrorBoundary>
   )
 }

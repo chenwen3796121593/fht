@@ -1,93 +1,31 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { createChart, ColorType, CandlestickSeries, HistogramSeries } from 'lightweight-charts'
 
 function fmtPrice(v, symbol) {
-  if (!v) return '--'
-  if (symbol.includes('XAU') || symbol.includes('GC')) return '$' + Number(v).toFixed(1)
-  if (symbol.startsWith('sh') || symbol.startsWith('sz')) return Number(v).toFixed(2)
-  if (symbol.includes('XAG')) return '$' + Number(v).toFixed(2)
-  if (symbol.includes('CL')) return '$' + Number(v).toFixed(2)
-  if (symbol.includes('HG') || symbol.includes('CU')) return '$' + Number(v).toFixed(0)
-  if (v >= 1000) return Number(v).toFixed(0)
-  return '$' + Number(v).toFixed(2)
+  if (v == null) return '--'
+  const n = Number(v)
+  if (symbol.includes('XAU') || symbol.includes('GC')) return '$' + n.toFixed(1)
+  if (symbol.startsWith('sh') || symbol.startsWith('sz')) return n.toFixed(2)
+  if (symbol.includes('XAG') || symbol.includes('CL')) return '$' + n.toFixed(2)
+  if (symbol.includes('HG') || symbol.includes('CU')) return '$' + n.toFixed(0)
+  if (n >= 1000) return n.toFixed(0)
+  return '$' + n.toFixed(2)
 }
 
-function bucketKey(ts) {
-  const d = new Date(ts); d.setMinutes(Math.floor(d.getMinutes() / 15) * 15, 0, 0); return d.getTime()
-}
 function todayStr() { return new Date().toDateString() }
-function cacheKey(symbol) { return `fh_intra_${symbol}_${todayStr()}` }
-
-function saveBuckets(symbol, buckets) {
-  try {
-    const slim = {}
-    Object.entries(buckets).forEach(([k, v]) => { slim[k] = { o: v.open, c: v.close, h: v.high, l: v.low } })
-    localStorage.setItem(cacheKey(symbol), JSON.stringify(slim))
-  } catch(e) {}
-}
-function loadBuckets(symbol) {
-  try {
-    const raw = localStorage.getItem(cacheKey(symbol))
-    if (!raw) return {}
-    const obj = JSON.parse(raw), out = {}
-    Object.entries(obj).forEach(([k, v]) => { out[Number(k)] = { t: Number(k), open: v.o, close: v.c, high: v.h, low: v.l, volume: 0 } })
-    return out
-  } catch(e) { return {} }
-}
-
-const CandleChart = React.memo(({ data, width = 310, height = 180 }) => {
-  const p = useMemo(() => ({ top: 10, right: 8, bottom: 20, left: 52 }), [])
-  const { cw, ch, toY, barW, lo, hi } = useMemo(() => {
-    const cw = width - p.left - p.right, ch = height - p.top - p.bottom
-    const nums = data.flatMap(d => [d.open, d.close, d.high, d.low])
-    const lo = Math.min(...nums), hi = Math.max(...nums)
-    const pad = (hi - lo || 1) * 0.15
-    const range = (hi + pad) - (lo - pad) || 1
-    return { cw, ch, lo, hi, toY: (v) => p.top + ((hi - v) / range) * ch, barW: Math.min(6, Math.max(1, (cw / data.length) * 0.7)) }
-  }, [data, width, p])
-  return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
-      <rect width={width} height={height} fill="#0D1117" rx={6} />
-      {[0, 1, 2, 3, 4].map(i => {
-        const v = lo + ((hi - lo) / 4) * i, y = toY(v)
-        return (<g key={i}><line x1={p.left} y1={y} x2={width - p.right} y2={y} stroke="#1A2129" strokeWidth={0.5} /><text x={p.left - 5} y={y + 4} fill="#4D545C" fontSize={9} textAnchor="end">{v.toFixed(v >= 100 ? 0 : 2)}</text></g>)
-      })}
-      {data.map((d, i) => {
-        const x = p.left + i * (cw / data.length), up = d.close >= d.open, color = up ? '#EF4444' : '#22C55E'
-        const y1 = toY(Math.max(d.open, d.close)), y2 = toY(Math.min(d.open, d.close))
-        const h = Math.max(1, y2 - y1), cx = x + barW / 2
-        return <g key={i}><line x1={cx} y1={toY(d.high)} x2={cx} y2={toY(d.low)} stroke={color} strokeWidth={1} /><rect x={x + (cw / data.length - barW) / 2} y={y1} width={barW} height={h} fill={color} /></g>
-      })}
-    </svg>
-  )
-})
-
-const VolChart = React.memo(function VolChart({ data, width = 310, height = 44 }) {
-  const maxV = Math.max(...data.map(d => d.volume || 0), 1)
-  const barW = Math.max(1, (width - 16) / data.length * 0.7)
-  return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
-      <rect width={width} height={height} fill="#0D1117" rx={4} />
-      {data.map((d, i) => {
-        const h = Math.max(1, ((d.volume || 0) / maxV) * (height - 8))
-        const up = d.close >= d.open
-        return <rect key={i} x={8 + i * ((width - 16) / data.length) + ((width - 16) / data.length - barW) / 2} y={height - h} width={barW} height={h} fill={up ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.4)'} />
-      })}
-    </svg>
-  )
-})
 
 export default function StockChart({ symbol, name, priceData }) {
   const [range, setRange] = useState('日线')
   const [kdata, setKdata] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [realTimePrice, setRealTimePrice] = useState(null)
+  const chartRef = useRef(null)
+  const containerRef = useRef(null)
 
   const isCommodity = symbol.startsWith('hf_') || symbol.startsWith('nf_')
   const isIntraday = range === '分时'
   const options = isCommodity ? ['日线', '全部'] : ['分时', '日线', '全部']
 
-  useEffect(() => { if (priceData?.price > 0) setRealTimePrice(priceData.price) }, [priceData?.price])
-
+  // Fetch K-line
   useEffect(() => {
     let cancelled = false; setLoading(true); setKdata(null)
 
@@ -98,15 +36,14 @@ export default function StockChart({ symbol, name, priceData }) {
       else if (apiSymbol.startsWith('8') || apiSymbol.startsWith('4')) apiSymbol = 'bj' + apiSymbol
     }
 
-    const cacheKey = `kline_${apiSymbol}_${range}`
-    const today = new Date().toDateString()
+    const ck = `kline_${apiSymbol}_${range}`
 
     if (!isIntraday) {
-      const cached = localStorage.getItem(cacheKey)
+      const cached = localStorage.getItem(ck)
       if (cached) {
         try {
           const { date, data } = JSON.parse(cached)
-          if (date === today && data?.length > 0) {
+          if (date === todayStr() && data?.length > 0) {
             if (!cancelled) { setKdata(range === '全部' ? data : data.slice(-30)); setLoading(false); return }
           }
         } catch (e) {}
@@ -123,25 +60,27 @@ export default function StockChart({ symbol, name, priceData }) {
           open: parseFloat(d.open), close: parseFloat(d.close),
           high: parseFloat(d.high), low: parseFloat(d.low),
           volume: parseFloat(d.volume) || 0,
+          day: d.day || '',
         })).filter(d => d.open && d.close)
+
+        if (parsed.length === 0) { setLoading(false); return }
+
         const SAMPLE_MAX = isIntraday ? 240 : 300
         let toShow = parsed
-        if (!isIntraday && range !== '全部') {
-          toShow = parsed.slice(-30)
-        } else if (!isIntraday && parsed.length > SAMPLE_MAX) {
+        if (!isIntraday && range !== '全部') toShow = parsed.slice(-30)
+        else if (!isIntraday && parsed.length > SAMPLE_MAX) {
           const step = Math.ceil(parsed.length / SAMPLE_MAX)
           toShow = parsed.filter((_, i) => i % step === 0 || i === parsed.length - 1)
         }
+
         if (toShow.length > 0) {
-          if (!isIntraday && priceData?.price > 0) {
+          if (!isIntraday && priceData?.price > 0 && range !== '全部') {
             const last = toShow[toShow.length - 1]
-            if (last) {
-              toShow[toShow.length - 1] = { ...last, close: priceData.price, high: Math.max(last.high||0,priceData.price), low: Math.min(last.low||Infinity,priceData.price) }
-            }
+            if (last) toShow[toShow.length - 1] = { ...last, close: priceData.price, high: Math.max(last.high || 0, priceData.price), low: Math.min(last.low || Infinity, priceData.price) }
           }
           setKdata(toShow)
           if (!isIntraday && (parsed.length <= 300 || range !== '全部')) {
-            try { localStorage.setItem(cacheKey, JSON.stringify({ date: today, data: parsed.slice(-200) })) } catch(e) {}
+            try { localStorage.setItem(ck, JSON.stringify({ date: todayStr(), data: parsed.slice(-200) })) } catch(e) {}
           }
         }
         setLoading(false)
@@ -150,13 +89,58 @@ export default function StockChart({ symbol, name, priceData }) {
     return () => { cancelled = true }
   }, [symbol, range, isIntraday])
 
-  const rt = realTimePrice || priceData?.price
-  let displayData = kdata
-  if (!isIntraday && rt && displayData && displayData.length > 0) {
-    displayData = [...displayData]
-    const idx = displayData.length - 1, last = displayData[idx]
-    displayData[idx] = { ...last, open: priceData?.open || last.open, close: rt, high: Math.max(last.high||0,priceData?.high||rt,rt), low: Math.min(last.low||Infinity,priceData?.low||rt,rt) }
-  }
+  const rt = priceData?.rawPrice || priceData?.price
+  const displayData = useMemo(() => {
+    if (!kdata) return []
+    if (isIntraday || !rt) return kdata
+    const d = [...kdata]
+    const last = { ...d[d.length - 1] }
+    last.close = rt
+    last.high = Math.max(last.high, rt, priceData?.high || rt)
+    last.low = Math.min(last.low, rt, priceData?.low || rt)
+    d[d.length - 1] = last
+    return d
+  }, [kdata, rt, isIntraday, priceData?.high, priceData?.low])
+
+  // lightweight-charts render
+  useEffect(() => {
+    if (!containerRef.current || !displayData.length) return
+    const container = containerRef.current
+    if (chartRef.current) { chartRef.current.remove(); chartRef.current = null }
+
+    const chart = createChart(container, {
+      width: container.clientWidth,
+      height: 220,
+      layout: { background: { type: ColorType.Solid, color: '#0D1117' }, textColor: '#4D545C' },
+      grid: { vertLines: { color: '#1A2129' }, horzLines: { color: '#1A2129' } },
+      crosshair: { mode: 0 },
+      rightPriceScale: { borderColor: '#242B33', scaleMargins: { top: 0.05, bottom: 0.25 } },
+      timeScale: { borderColor: '#242B33', timeVisible: isIntraday, secondsVisible: false },
+    })
+
+    const candleSeries = chart.addSeries(CandlestickSeries, {
+      upColor: '#EF4444', downColor: '#22C55E',
+      borderUpColor: '#EF4444', borderDownColor: '#22C55E',
+      wickUpColor: '#EF4444', wickDownColor: '#22C55E',
+    })
+    candleSeries.setData(displayData.map((d, i) => ({
+      time: d.day && d.day.length > 10 ? Math.floor(new Date(d.day).getTime() / 1000) : (d.day || i),
+      open: d.open, high: d.high, low: d.low, close: d.close,
+    })))
+
+    const volumeSeries = chart.addSeries(HistogramSeries, { priceFormat: { type: 'volume' }, priceScaleId: '' })
+    volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.78, bottom: 0 } })
+    volumeSeries.setData(displayData.map((d, i) => ({
+      time: d.day && d.day.length > 10 ? Math.floor(new Date(d.day).getTime() / 1000) : (d.day || i),
+      value: d.volume || 0,
+      color: d.close >= d.open ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.4)',
+    })))
+
+    chartRef.current = chart
+    const onResize = () => chart.applyOptions({ width: container.clientWidth })
+    window.addEventListener('resize', onResize)
+    return () => { window.removeEventListener('resize', onResize); chart.remove(); chartRef.current = null }
+  }, [displayData, isIntraday])
 
   return (
     <div className="px-4 pb-3">
@@ -166,20 +150,21 @@ export default function StockChart({ symbol, name, priceData }) {
           <div className="flex items-center gap-2 mt-0.5">
             <span className="text-lg font-bold text-[#F0F2F5]">{priceData?.formattedPrice || priceData?.price || '--'}</span>
             {priceData?.change != null && (
-              <span className={`text-[13px] font-medium ${(priceData.change||0)>=0?'text-[#EF4444]':'text-[#22C55E]'}`}>{(priceData.change||0)>=0?'+':''}{(priceData.change||0).toFixed(2)}%</span>
+              <span className={`text-[13px] font-medium ${(priceData.change || 0) >= 0 ? 'text-[#EF4444]' : 'text-[#22C55E]'}`}>
+                {(priceData.change || 0) >= 0 ? '+' : ''}{(priceData.change || 0).toFixed(2)}%
+              </span>
             )}
           </div>
         </div>
         <div className="flex gap-1.5 mb-3">
           {options.map(t => (
             <button key={t} onClick={() => setRange(t)}
-              className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${range===t?'bg-[#3B82F6] text-white':'bg-[#1A2129] text-[#8D949E]'}`}>{t}</button>
+              className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${range === t ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>{t}</button>
           ))}
         </div>
-        {loading && <div className="w-full h-[180px] bg-[#0D1117] rounded-md flex items-center justify-center"><span className="text-sm text-[#4D545C]">加载中...</span></div>}
-        {!loading && !kdata && <div className="w-full h-[180px] bg-[#0D1117] rounded-md flex items-center justify-center"><span className="text-sm text-[#4D545C]">暂无 K 线数据</span></div>}
-        {displayData && displayData.length > 0 && <CandleChart data={displayData} />}
-        {!isIntraday && displayData?.length > 0 && <><div className="text-[11px] text-[#4D545C] mt-1 mb-1">成交量</div><VolChart data={displayData} /></>}
+        {loading && <div className="w-full bg-[#0D1117] rounded-md flex items-center justify-center" style={{ height: 220 }}><span className="text-sm text-[#4D545C]">加载中...</span></div>}
+        {!loading && !kdata && <div className="w-full bg-[#0D1117] rounded-md flex items-center justify-center" style={{ height: 220 }}><span className="text-sm text-[#4D545C]">暂无 K 线数据</span></div>}
+        <div ref={containerRef} style={{ width: '100%', height: displayData.length > 0 ? 220 : 0, overflow: 'hidden' }} />
       </div>
     </div>
   )

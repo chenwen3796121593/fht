@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import TopBar from '../components/TopBar'
-import MarketBar, { useMarketQuotes } from '../components/MarketBar'
-import { TrendingUp, Landmark, DollarSign, Banknote, BarChart3, RefreshCw } from 'lucide-react'
+import MarketBar from '../components/MarketBar'
+import { useApp } from '../context/AppContext.jsx'
+import { MACRO_INTERVAL, CACHE_TTL } from '../lib/constants.js'
+import { TrendingUp, Landmark, DollarSign, Banknote, BarChart3 } from 'lucide-react'
 
 function LineChart({ data, lines, shData, width = 170, height = 110 }) {
   const p = { top: 8, right: 30, bottom: 16, left: 32 }
@@ -62,30 +64,25 @@ function IndicatorCard({ title, data, lines, rows, loading, shData, icon: Icon }
 }
 
 const toArray = (d) => Array.isArray(d) ? d : (d?.result?.data || d?.macro || d?.data || [])
-
 const CACHE_KEYS = ['fh_indicator_m1m2','fh_indicator_loan','fh_indicator_reserve','fh_indicator_sh']
-const CACHE_TTL = 86400000 // 24h
 
 function fmtTime(ts) {
   return new Date(ts).toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit' })
 }
 
-export default function IndicatorsPage({ onNavigate }) {
-  const quotes = useMarketQuotes()
+export default function IndicatorsPage() {
+  const { quotes } = useApp()
   const [m1m2, setM1m2] = useState(null)
   const [loan, setLoan] = useState(null)
   const [reserve, setReserve] = useState(null)
   const [shMonthly, setShMonthly] = useState(null)
   const [loading, setLoading] = useState(true)
   const [lastUpdate, setLastUpdate] = useState('')
-  const [refreshing, setRefreshing] = useState(false)
-  const [spin, setSpin] = useState(false)
   const fetchRef = useRef(null)
 
   useEffect(() => {
     let cancelled = false
 
-    // Load from cache instantly
     try {
       const raw = CACHE_KEYS.map(k => localStorage.getItem(k))
       if (raw.every(Boolean)) {
@@ -103,7 +100,6 @@ export default function IndicatorsPage({ onNavigate }) {
 
     async function fetchAll() {
       if (cancelled) return
-      setRefreshing(true); setSpin(true)
       try {
         const [m1R, loanR, resR, shR] = await Promise.all([
           fetch('/api/macro-data?report=CURRENCY_SUPPLY'),
@@ -115,7 +111,6 @@ export default function IndicatorsPage({ onNavigate }) {
         if (cancelled) return
         const m1a = toArray(m1D), la = toArray(loanD)
         const ra = toArray(resD), shA = Array.isArray(shD) ? shD : []
-        // Save to cache
         const now = Date.now()
         try {
           const arr = [{data:m1a,ts:now},{data:la,ts:now},{data:ra,ts:now},{data:shA,ts:now}]
@@ -125,34 +120,22 @@ export default function IndicatorsPage({ onNavigate }) {
         setLastUpdate(fmtTime(now))
         setLoading(false)
       } catch(e) { if (!cancelled) setLoading(false) }
-      if (!cancelled) { setRefreshing(false); setTimeout(() => setSpin(false), 600) }
     }
 
     fetchAll()
-    timer = setInterval(fetchAll, 3600000)
+    timer = setInterval(fetchAll, MACRO_INTERVAL)
     fetchRef.current = fetchAll
     return () => { cancelled = true; clearInterval(timer); fetchRef.current = null }
   }, [])
 
   return (
     <div className="bg-[#0A0F14] h-full overflow-y-auto">
-      <TopBar active="indicators" onHome={() => onNavigate('home')} onStocks={() => onNavigate('dashboard')} onIndicators={() => onNavigate('indicators')} onNews={() => onNavigate('news')} onChat={() => onNavigate('chat')} onAlerts={() => onNavigate('alerts')} onVip={() => onNavigate('vip')} />
+      <TopBar active="indicators" />
       <div className="pt-3"><MarketBar quotes={quotes} /></div>
-      <div className="px-4 pt-5 pb-2 flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <BarChart3 size={14} className="text-[#8D949E]" />
-          <span className="text-xs font-medium text-[#8D949E]">先行指标</span>
-          {lastUpdate && !loading && (
-            <span className="text-[10px] text-[#4D545C] ml-2">更新 {lastUpdate}</span>
-          )}
-        </div>
-        <button
-          onClick={() => fetchRef.current?.()}
-          disabled={refreshing}
-          className="w-7 h-7 rounded-lg flex items-center justify-center bg-[#1A2129] text-[#8D949E] hover:bg-[#242B33] hover:text-[#F0F2F5] disabled:opacity-40"
-        >
-          <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
-        </button>
+      <div className="px-4 pt-5 pb-2 flex items-center gap-1.5">
+        <BarChart3 size={14} className="text-[#8D949E]" />
+        <span className="text-xs font-medium text-[#8D949E]">先行指标</span>
+        {lastUpdate && !loading && <span className="text-[10px] text-[#4D545C] ml-2">更新 {lastUpdate}</span>}
       </div>
       <div className="px-4 pb-6 grid grid-cols-2 gap-2">
         <IndicatorCard icon={TrendingUp} title="M1/M2 货币供应" data={m1m2} shData={shMonthly} lines={[{key:'m1Yoy',color:'#3B82F6'},{key:'m2Yoy',color:'#EAB308',dash:'4,2'}]} loading={loading}

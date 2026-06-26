@@ -1,18 +1,20 @@
 import { useState, useEffect } from 'react'
 import TopBar from '../components/TopBar'
-import MarketBar, { useMarketQuotes } from '../components/MarketBar'
-import { Activity, TrendingUp, TrendingDown } from 'lucide-react'
+import MarketBar from '../components/MarketBar'
+import { useApp } from '../context/AppContext.jsx'
+import { SkeletonMarketCards, SkeletonHomeStats } from '../components/Skeleton.jsx'
+import { Activity, TrendingUp, Snowflake, Flame } from 'lucide-react'
 
-function Thermometer({ pct }) {
+function Thermometer({ pct, ready }) {
   const h = Math.max(5, Math.min(100, 50 + pct * 20))
-  const color = pct > 0 ? '#EF4444' : pct < 0 ? '#22C55E' : '#F97316'
+  const color = ready ? (pct > 0 ? '#EF4444' : pct < 0 ? '#22C55E' : '#F97316') : '#4D545C'
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-[10px]" style={{ color }}>❄️</span>
+      <Snowflake size={12} style={{ color }} />
       <div className="flex-1 h-1.5 bg-[#1A2129] rounded-full overflow-hidden">
-        <div className="h-full rounded-full transition-all duration-1000" style={{ width: h + '%', backgroundColor: color }} />
+        <div className="h-full rounded-full transition-all duration-1000" style={{ width: ready ? h + '%' : '50%', backgroundColor: color }} />
       </div>
-      <span className="text-[10px]" style={{ color }}>🔥</span>
+      <Flame size={12} style={{ color }} />
     </div>
   )
 }
@@ -25,15 +27,11 @@ function SectorFlow() {
     let cancelled = false
     async function fetchData() {
       try {
-        // Try CF format first (single request)
         const res = await fetch('/api/flow?t=' + Date.now())
         const json = await res.json()
         if (!cancelled) {
-          // CF format: {data: [...], outData: [...]}
           if (json.data && json.outData) { setAllData(json); return }
-          // Local proxy format: {data: {diff: [...]}}
           if (json.data?.diff) {
-            // Fetch both directions
             const outRes = await fetch('/api/flow?type=out')
             const outJson = await outRes.json()
             const mapData = (arr) => (arr?.data?.diff || []).map(i => ({
@@ -94,45 +92,32 @@ function SectorFlow() {
   )
 }
 
-export default function HomePage({ onNavigate }) {
-  const quotes = useMarketQuotes()
-  const [breadth, setBreadth] = useState(null)
-
-  useEffect(() => {
-    let cancelled = false
-    const fetchBreadth = async () => {
-      try { const res = await fetch('/api/breadth?t=' + Date.now()); const data = await res.json(); if (!cancelled && data.total > 0) setBreadth(data) } catch(e) {}
-    }
-    fetchBreadth()
-    const t = setInterval(fetchBreadth, 30000)
-    return () => { cancelled = true; clearInterval(t) }
-  }, [])
+export default function HomePage() {
+  const { quotes, loading, breadth } = useApp()
+  const isInitialLoad = loading && Object.keys(quotes).length === 0
 
   const sh = quotes['sh000001'], sz = quotes['sz399001']
+  const dataReady = !!(sh && sz)
   const totalTurnover = (sh?.turnover && sz?.turnover) ? ((sh.turnover + sz.turnover) / 1e8).toFixed(0) + '亿' : '--'
-  const avgChg = sh && sz ? ((sh.change || 0) + (sz.change || 0)) / 2 : 0
+  const avgChg = dataReady ? ((sh.change || 0) + (sz.change || 0)) / 2 : 0
 
   return (
     <div className="bg-[#0A0F14] h-full overflow-y-auto">
-      <TopBar active="home" onHome={() => onNavigate('home')} onStocks={() => onNavigate('dashboard')} onChat={() => onNavigate('chat')} onIndicators={() => onNavigate('indicators')} onNews={() => onNavigate('news')} onAlerts={() => onNavigate('alerts')} onVip={() => onNavigate('vip')} />
-
+      <TopBar active="home" />
       <div className="px-4 py-3 flex flex-col gap-3">
-        <MarketBar quotes={quotes} />
-
-        <div className="grid grid-cols-2 gap-2">
-          <div className="bg-[#12161C] border border-[#242B33] rounded-xl p-3">
-            <div className="text-[10px] text-[#6B7280] mb-1">两市成交额</div>
-            <div className="text-base font-bold text-[#F0F2F5]">{totalTurnover}</div>
-          </div>
-          <div className="bg-[#12161C] border border-[#242B33] rounded-xl p-3">
-            <div className="text-[10px] text-[#6B7280] mb-1">市场温度</div>
-            <div className="text-base font-bold" style={{ color: avgChg > 0.3 ? '#EF4444' : avgChg < -0.3 ? '#22C55E' : '#F97316' }}>
-              {avgChg > 0.5 ? '火热' : avgChg > 0.1 ? '偏暖' : avgChg > -0.1 ? '中性' : avgChg > -0.5 ? '偏冷' : '冰点'}
+        {isInitialLoad ? <SkeletonMarketCards /> : <MarketBar quotes={quotes} />}
+        {isInitialLoad ? <SkeletonHomeStats /> : (
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-[#12161C] border border-[#242B33] rounded-xl p-3">
+              <div className="text-[10px] text-[#6B7280] mb-1">两市成交额</div>
+              <div className="text-base font-bold text-[#F0F2F5]">{totalTurnover}</div>
             </div>
-            <Thermometer pct={avgChg} />
+            <div className="bg-[#12161C] border border-[#242B33] rounded-xl p-3">
+              <div className="text-[10px] text-[#6B7280] mb-1">市场温度</div>
+              <Thermometer pct={avgChg} ready={dataReady} />
+            </div>
           </div>
-        </div>
-
+        )}
         <div className="bg-[#12161C] border border-[#242B33] rounded-xl p-4">
           <div className="text-xs text-[#8D949E] mb-3 flex items-center gap-1.5"><Activity size={14} /> 市场涨跌</div>
           {breadth ? (
@@ -146,7 +131,6 @@ export default function HomePage({ onNavigate }) {
             <div className="text-xs text-[#4D545C]">加载中...</div>
           )}
         </div>
-
         <SectorFlow />
       </div>
     </div>

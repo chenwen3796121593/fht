@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import TopBar from '../components/TopBar'
-import { RefreshCw } from 'lucide-react'
+import { NEWS_INTERVAL } from '../lib/constants.js'
 
 const tabs = ['全部', '股票', '商品', '宏观']
 
@@ -12,13 +12,13 @@ function fmtTime(d) {
   return new Date(d).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
 }
 
-export default function NewsPage({ onNavigate }) {
+export default function NewsPage() {
   const [tab, setTab] = useState('全部')
   const [rssNews, setRssNews] = useState({ stock: [], commodity: [], macro: [] })
-  const [loading, setLoading] = useState(true); const [spin, setSpin] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   const fetchAll = useCallback(async () => {
-    setLoading(true); setSpin(true)
+    setLoading(true)
     try {
       const urls = ['/api/rss-news?type=stock', '/api/rss-news?type=commodity', '/api/macro-news']
       const responses = await Promise.all(urls.map(u => fetch(u).catch(() => ({ json: () => [] }))))
@@ -29,48 +29,33 @@ export default function NewsPage({ onNavigate }) {
         if (sa !== sb) return sb - sa
         return new Date(b.pubDate||0) - new Date(a.pubDate||0)
       })
-      const stock = sortByStars(Array.isArray(data[0]) ? data[0] : [])
-      const commodity = sortByStars(Array.isArray(data[1]) ? data[1] : [])
-      const macro = Array.isArray(data[2]) ? data[2] : []
-      setRssNews({ stock, commodity, macro })
+      setRssNews({ stock: sortByStars(Array.isArray(data[0]) ? data[0] : []), commodity: sortByStars(Array.isArray(data[1]) ? data[1] : []), macro: Array.isArray(data[2]) ? data[2] : [] })
     } catch(e) {}
-    setLoading(false); setTimeout(() => setSpin(false), 600)
+    setLoading(false)
   }, [])
 
   useEffect(() => {
     fetchAll()
-    // Only macro needs periodic refresh (every 5min)
     const t = setInterval(async () => {
-      try {
-        const res = await fetch('/api/macro-news')
-        const macro = await res.json()
-        setRssNews(prev => ({ ...prev, macro: Array.isArray(macro) ? macro : [] }))
-      } catch(e) {}
-    }, 300000)
+      try { const res = await fetch('/api/macro-news'); const macro = await res.json(); setRssNews(prev => ({ ...prev, macro: Array.isArray(macro) ? macro : [] })) } catch(e) {}
+    }, NEWS_INTERVAL)
     return () => clearInterval(t)
   }, [fetchAll])
 
   const sorted = (arr) => [...arr].sort((a,b) => new Date(b.pubDate||b.time) - new Date(a.pubDate||a.time))
   const all = sorted([...rssNews.stock, ...rssNews.commodity, ...rssNews.macro])
-  const filtered = tab === '全部' ? all
-    : tab === '股票' ? rssNews.stock
-    : tab === '商品' ? rssNews.commodity
-    : rssNews.macro
+  const filtered = tab === '全部' ? all : tab === '股票' ? rssNews.stock : tab === '商品' ? rssNews.commodity : rssNews.macro
 
   return (
     <div className="overflow-y-auto bg-[#0A0F14] h-full">
-      <TopBar active="news" onHome={() => onNavigate('home')} onStocks={() => onNavigate('dashboard')} onIndicators={() => onNavigate('indicators')} onNews={() => onNavigate('news')} onChat={() => onNavigate('chat')} onAlerts={() => onNavigate('alerts')} onVip={() => onNavigate('vip')} />
-
+      <TopBar active="news" />
       <div className="px-4 pt-2 pb-2 flex items-center justify-between sticky top-[52px] bg-[#0A0F14] z-10">
         <div className="flex gap-1.5">
           {tabs.map(t => (
-            <button key={t} onClick={() => setTab(t)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium ${tab===t ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>{t}</button>
+            <button key={t} onClick={() => setTab(t)} className={`px-3 py-1.5 rounded-md text-xs font-medium ${tab===t ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>{t}</button>
           ))}
         </div>
-        <button onClick={fetchAll} className="w-7 h-7 rounded-lg flex items-center justify-center bg-[#1A2129] text-[#8D949E] hover:bg-[#242B33] hover:text-[#F0F2F5] active:scale-90 transition-all"><RefreshCw size={14} className={spin?'animate-spin':''} /></button>
       </div>
-
       <div className="px-4 flex flex-col gap-1.5 pb-8">
         {loading && filtered.length===0 && <div className="text-center text-[#4D545C] text-sm py-12">加载中...</div>}
         {filtered.map((n, i) => (

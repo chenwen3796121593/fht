@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import TopBar from '../components/TopBar'
-import MarketBar, { useMarketQuotes } from '../components/MarketBar'
+import MarketBar from '../components/MarketBar'
 import Watchlist from '../components/Watchlist'
 import StockChart from '../components/StockChart'
-import useMarketData from '../hooks/useMarketData'
+import { useApp } from '../context/AppContext.jsx'
 import useAlertChecker from '../hooks/useAlertChecker'
 
-export default function Dashboard({ onNavigate }) {
+export default function Dashboard() {
+  const { prices, quotes, addExtraSymbol } = useApp()
   const [selected, setSelected] = useState(() => {
     const saved = localStorage.getItem('fh_selected')
     return saved ? JSON.parse(saved) : { symbol: 'hf_XAU', name: '现货黄金' }
@@ -28,15 +29,13 @@ export default function Dashboard({ onNavigate }) {
     } catch(e) { return [] }
   })
 
-  const customSymbols = customStocks.map(s => s.symbol).filter(Boolean)
-  const { prices } = useMarketData(customSymbols)
-  const quotes = useMarketQuotes()
   useAlertChecker(prices)
 
   const handleSelect = (s) => { setSelected(s); localStorage.setItem('fh_selected', JSON.stringify(s)) }
   const handleAddStock = (s) => {
     if (!s) return
     setCustomStocks(prev => { const next = [...prev, s]; localStorage.setItem('fh_custom', JSON.stringify(next)); return next })
+    addExtraSymbol({ symbol: s.symbol, name: s.name })
   }
   const handleRemoveStock = (s) => {
     setCustomStocks(prev => { const next = prev.filter(x => x.symbol !== s.symbol); localStorage.setItem('fh_custom', JSON.stringify(next)); return next })
@@ -44,12 +43,8 @@ export default function Dashboard({ onNavigate }) {
 
   return (
     <div className="bg-[#0A0F14] h-full overflow-y-auto">
-      <TopBar active="dashboard" onHome={() => onNavigate('home')} onStocks={() => onNavigate('dashboard')} onChat={() => onNavigate('chat')} onIndicators={() => onNavigate('indicators')} onNews={() => onNavigate('news')} onAlerts={() => onNavigate('alerts')} onVip={() => onNavigate('vip')} />
-
-      <div className="pt-3">
-        <MarketBar quotes={quotes} />
-      </div>
-
+      <TopBar active="dashboard" />
+      <div className="pt-3"><MarketBar quotes={quotes} /></div>
       <Watchlist selected={selected.symbol} onSelect={handleSelect} prices={prices} customStocks={customStocks} onAddStock={handleAddStock} onRemoveStock={handleRemoveStock} />
       <div className="pb-6">
         <StockChart symbol={selected.symbol} name={selected.name} priceData={quotes[selected.symbol] || prices[selected.symbol]} />
