@@ -98,9 +98,8 @@ export default function StockChart({ symbol, name, priceData }) {
     return d
   }, [kdata, rt, isIntraday, priceData?.high, priceData?.low])
 
-  const toTime = (d) => d.day && d.day.length > 10 ? Math.floor(new Date(d.day).getTime() / 1000) : (d.day || 0)
-  const toCandle = (d) => ({ time: toTime(d), open: d.open, high: d.high, low: d.low, close: d.close })
-  const toVol = (d) => ({ time: toTime(d), value: d.volume || 0, color: d.close >= d.open ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.4)' })
+  const toCandle = (d, i) => ({ time: d.day || i, open: d.open, high: d.high, low: d.low, close: d.close })
+  const toVol = (d, i) => ({ time: d.day || i, value: d.volume || 0, color: d.close >= d.open ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.4)' })
 
   // Create chart once when kdata changes
   useEffect(() => {
@@ -119,8 +118,8 @@ export default function StockChart({ symbol, name, priceData }) {
     const cs = chart.addSeries(CandlestickSeries, { upColor: '#EF4444', downColor: '#22C55E', borderUpColor: '#EF4444', borderDownColor: '#22C55E', wickUpColor: '#EF4444', wickDownColor: '#22C55E' })
     const vs = chart.addSeries(HistogramSeries, { priceFormat: { type: 'volume' }, priceScaleId: '' })
     vs.priceScale().applyOptions({ scaleMargins: { top: 0.78, bottom: 0 } })
-    cs.setData(displayData.map(toCandle))
-    vs.setData(displayData.map(toVol))
+    cs.setData(displayData.map((d,i) => toCandle(d,i)))
+    vs.setData(displayData.map((d,i) => toVol(d,i)))
     chartRef.current = { chart, cs, vs }
     const onResize = () => chart.applyOptions({ width: container.clientWidth })
     window.addEventListener('resize', onResize)
@@ -131,8 +130,8 @@ export default function StockChart({ symbol, name, priceData }) {
   useEffect(() => {
     const ref = chartRef.current
     if (!ref || !displayData.length) return
-    ref.cs.setData(displayData.map(toCandle))
-    ref.vs.setData(displayData.map(toVol))
+    ref.cs.setData(displayData.map((d,i) => toCandle(d,i)))
+    ref.vs.setData(displayData.map((d,i) => toVol(d,i)))
   }, [displayData])
 
   return (
