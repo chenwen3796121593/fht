@@ -87,8 +87,8 @@ export default function MetalsPage() {
     <div className="bg-[#0A0F14] h-full flex flex-col">
       <TopBar active="metals" />
 
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto px-4 pt-4">
+      {/* Content */}
+      <div className="px-4 pt-4">
         <div className="flex items-center gap-2 mb-3">
           <Banknote size={18} className="text-[#F59E0B]" />
           <span className="text-sm font-bold text-[#F0F2F5]">贵金属行情</span>
