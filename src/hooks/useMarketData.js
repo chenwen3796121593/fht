@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { POLL_INTERVAL, DEFAULT_SYMBOLS, MARKETBAR_SYMBOLS, normalizeSymbol } from '../lib/constants.js'
 
 const PROXY_URL = '/api/data?list='
@@ -56,8 +56,11 @@ export default function useMarketData(extraSymbols = []) {
   const [prices, setPrices] = useState({})
   const [quotes, setQuotes] = useState({})
   const [loading, setLoading] = useState(true)
+  const extraRef = useRef(extraSymbols)
+  extraRef.current = extraSymbols
 
   const fetchAll = useCallback(async () => {
+    const extraSymbols = extraRef.current
     const baseSymbols = DEFAULT_SYMBOLS.map(m => m.symbol)
     const extraSyms = extraSymbols.map(s => typeof s === 'string' ? s : s.symbol).filter(Boolean)
     const allSymbols = [...baseSymbols, ...extraSyms.filter(s => !baseSymbols.includes(s))]
@@ -100,10 +103,9 @@ export default function useMarketData(extraSymbols = []) {
         setLoading(false)
       }
     } catch (e) {
-      console.error('Market fetch error:', e)
       setLoading(false)
     }
-  }, [extraSymbols.map(s => typeof s === 'string' ? s : s.symbol).join(',')])
+  }, [])
 
   useEffect(() => {
     fetchAll()

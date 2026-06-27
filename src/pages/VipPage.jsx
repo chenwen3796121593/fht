@@ -59,7 +59,7 @@ export default function VipPage() {
       }
       const client = await getSB()
       const { data, error } = await client.from('vip_users').select('*').eq('username', username.trim()).eq('password', password.trim()).single()
-      if (error || !data) { if (username.trim() === ADMIN_USERNAME && password.trim() === '859168') { setLoggedIn(true); setCurrentUser(username.trim()); setIsAdmin(true); localStorage.setItem('fh_vip_user', username.trim()); return }; setLoginErr('用户名或密码错误'); return }
+      if (error || !data) { setLoginErr('用户名或密码错误'); return }
       setLoggedIn(true); setCurrentUser(data.username); setIsAdmin(data.username === ADMIN_USERNAME); localStorage.setItem('fh_vip_user', data.username)
     } catch(e) { setLoginErr('登录失败') }
   }

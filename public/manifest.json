@@ -1,7 +1,7 @@
 {
   "name": "烽火台 - 股票看板",
   "short_name": "烽火台",
-  "description": "跨市场实时股票加密货币看板",
+  "description": "跨市场实时行情看板 — 股票+商品+贵金属+宏观指标",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0A0F14",

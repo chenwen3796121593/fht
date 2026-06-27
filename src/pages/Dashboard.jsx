@@ -4,6 +4,7 @@ import MarketBar from '../components/MarketBar'
 import Watchlist from '../components/Watchlist'
 import StockChart from '../components/StockChart'
 import { useApp } from '../context/AppContext.jsx'
+import { normalizeSymbol } from '../lib/constants.js'
 import useAlertChecker from '../hooks/useAlertChecker'
 
 export default function Dashboard() {
@@ -19,11 +20,8 @@ export default function Dashboard() {
       const saved = JSON.parse(localStorage.getItem('fh_custom') || '[]')
       let changed = false
       const fixed = (Array.isArray(saved) ? saved : []).map(s => {
-        let sym = s?.symbol || ''
-        if (sym && !sym.startsWith('sh') && !sym.startsWith('sz') && !sym.startsWith('bj') && !sym.startsWith('hf_') && !sym.startsWith('nf_')) {
-          if (sym.startsWith('6')) { sym = 'sh' + sym; changed = true }
-          else if (sym.match(/^[03]/)) { sym = 'sz' + sym; changed = true }
-        }
+        const sym = normalizeSymbol(s?.symbol || '')
+        if (sym !== s?.symbol) changed = true
         return { ...s, symbol: sym }
       })
       if (changed) { try { localStorage.setItem('fh_custom', JSON.stringify(fixed)) } catch(e) {} }

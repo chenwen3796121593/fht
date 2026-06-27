@@ -4,7 +4,7 @@ export default function MarketBar({ quotes }) {
   return (
     <div className="flex gap-2.5 overflow-x-auto scrollbar-hide -mx-1 px-1">
       {MARKETBAR_SYMBOLS.map((q) => {
-        const d = quotes ? quotes[q.symbol] : null
+        const d = quotes[q.symbol]
         return (
           <div key={q.symbol} className="flex-shrink-0 w-[140px] bg-[#12161C] border border-[#242B33] rounded-xl px-3 py-2.5 flex flex-col gap-1">
             <span className="text-[10px] text-[#8D949E]">{q.name}</span>

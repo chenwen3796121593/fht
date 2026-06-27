@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
-import { normalizeSymbol } from '../lib/constants.js'
+import { normalizeSymbol, DEFAULT_WATCHLIST } from '../lib/constants.js'
 
 const NAME_MAP = {
   '茅台': 'sh600519', '贵州茅台': 'sh600519',
@@ -36,14 +36,6 @@ const NAME_MAP = {
   '三一重工': 'sh600031',
 }
 
-const WATCH_ITEMS = [
-  { symbol: 'hf_XAU', name: '现货黄金' },
-  { symbol: 'hf_XAG', name: '现货白银' },
-  { symbol: 'hf_CL', name: '国际原油' },
-  { symbol: 'hf_HG', name: 'COMEX铜' },
-  { symbol: 'hf_AHD', name: 'LME铝' },
-]
-
 export default function Watchlist({ selected, onSelect, prices = {}, customStocks = [], onAddStock, onRemoveStock }) {
   const [showAdd, setShowAdd] = useState(false)
   const [code, setCode] = useState('')
@@ -71,7 +63,7 @@ export default function Watchlist({ selected, onSelect, prices = {}, customStock
 
     if (NAME_MAP[input]) name = Object.keys(NAME_MAP).find(k => NAME_MAP[k] === symbol) || input
     const valid = symbol && (symbol.startsWith('sh') || symbol.startsWith('sz') || symbol.startsWith('bj') || symbol.startsWith('hf_') || symbol.startsWith('nf_'))
-    if (valid && !WATCH_ITEMS.find(s => s.symbol === symbol) && !customStocks.find(s => s.symbol === symbol)) {
+    if (valid && !DEFAULT_WATCHLIST.find(s => s.symbol === symbol) && !customStocks.find(s => s.symbol === symbol)) {
       onAddStock({ symbol, name })
     } else if (!valid) {
       alert('未找到"' + input + '"，请检查名称或输入代码（如 sh600519）')

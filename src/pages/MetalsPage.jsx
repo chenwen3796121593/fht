@@ -1,9 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import TopBar from '../components/TopBar'
 import { Banknote, TrendingUp } from 'lucide-react'
-
-const SB_URL = 'https://apfdgetfqxgbplariowa.supabase.co'
-const SB_KEY = 'sb_publishable_rb8wBIRHHXMOYSjDs8-LIQ_7jTR2B5o'
+import { METALS_SB_URL, METALS_SB_KEY } from '../lib/constants.js'
 
 export default function MetalsPage() {
   const [data, setData] = useState(null)
@@ -28,7 +26,7 @@ export default function MetalsPage() {
       } catch(e) {}
     }
     fetchMetals()
-    const t = setInterval(fetchMetals, 30000)
+    const t = setInterval(fetchMetals, 30000) // 30s for futures data
     return () => { cancelled = true; clearInterval(t) }
   }, [])
 
@@ -38,7 +36,7 @@ export default function MetalsPage() {
     ;(async () => {
       const { createClient } = await import('@supabase/supabase-js')
       if (cancelled) return
-      const sb = createClient(SB_URL, SB_KEY)
+      const sb = createClient(METALS_SB_URL, METALS_SB_KEY)
       sbRef.current = sb
 
       const { data: rows } = await sb.from('commodity_rankings').select('*').order('id')

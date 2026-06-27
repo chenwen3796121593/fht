@@ -2,17 +2,6 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { createChart, ColorType, CandlestickSeries, HistogramSeries } from 'lightweight-charts'
 import { normalizeSymbol } from '../lib/constants.js'
 
-function fmtPrice(v, symbol) {
-  if (v == null) return '--'
-  const n = Number(v)
-  if (symbol.includes('XAU') || symbol.includes('GC')) return '$' + n.toFixed(1)
-  if (symbol.startsWith('sh') || symbol.startsWith('sz')) return n.toFixed(2)
-  if (symbol.includes('XAG') || symbol.includes('CL')) return '$' + n.toFixed(2)
-  if (symbol.includes('HG') || symbol.includes('CU')) return '$' + n.toFixed(0)
-  if (n >= 1000) return n.toFixed(0)
-  return '$' + n.toFixed(2)
-}
-
 function todayStr() { return new Date().toDateString() }
 
 export default function StockChart({ symbol, name, priceData }) {
@@ -98,46 +87,53 @@ export default function StockChart({ symbol, name, priceData }) {
     return d
   }, [kdata, rt, isIntraday, priceData?.high, priceData?.low])
 
-  const toTime = (d, i) => {
-    if (!d.day) return i
-    // Intraday has time component → Unix timestamp; daily → date string
-    return d.day.length > 10 ? Math.floor(new Date(d.day).getTime() / 1000) : d.day
-  }
+  const toTime = (d, i) => { if (!d.day) return i; return d.day.length > 10 ? Math.floor(new Date(d.day).getTime() / 1000) : d.day }
   const toCandle = (d, i) => ({ time: toTime(d, i), open: d.open, high: d.high, low: d.low, close: d.close })
   const toVol = (d, i) => ({ time: toTime(d, i), value: d.volume || 0, color: d.close >= d.open ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.4)' })
 
-  // Create chart once when kdata changes
+  // Create or update chart
   useEffect(() => {
     if (!containerRef.current || !displayData.length) return
     const container = containerRef.current
-    if (chartRef.current) { chartRef.current.chart.remove(); chartRef.current = null }
+    const prev = chartRef.current
 
-    const chart = createChart(container, {
-      width: container.clientWidth, height: 220,
-      layout: { background: { type: ColorType.Solid, color: '#0D1117' }, textColor: '#4D545C' },
-      grid: { vertLines: { color: '#1A2129' }, horzLines: { color: '#1A2129' } },
-      crosshair: { mode: 0 },
-      rightPriceScale: { borderColor: '#242B33', scaleMargins: { top: 0.05, bottom: 0.25 } },
-      timeScale: { borderColor: '#242B33', timeVisible: isIntraday, secondsVisible: false },
-    })
-    const cs = chart.addSeries(CandlestickSeries, { upColor: '#EF4444', downColor: '#22C55E', borderUpColor: '#EF4444', borderDownColor: '#22C55E', wickUpColor: '#EF4444', wickDownColor: '#22C55E' })
-    const vs = chart.addSeries(HistogramSeries, { priceFormat: { type: 'volume' }, priceScaleId: '' })
-    vs.priceScale().applyOptions({ scaleMargins: { top: 0.78, bottom: 0 } })
-    cs.setData(displayData.map((d,i) => toCandle(d,i)))
-    vs.setData(displayData.map((d,i) => toVol(d,i)))
-    chartRef.current = { chart, cs, vs }
-    const onResize = () => chart.applyOptions({ width: container.clientWidth })
-    window.addEventListener('resize', onResize)
-    return () => { window.removeEventListener('resize', onResize); chart.remove(); chartRef.current = null }
-  }, [kdata, isIntraday])
+    if (!prev || prev.chart === null) {
+      // First time: create chart
+      const chart = createChart(container, {
+        width: container.clientWidth, height: 220,
+        layout: { background: { type: ColorType.Solid, color: '#0D1117' }, textColor: '#4D545C' },
+        grid: { vertLines: { color: '#1A2129' }, horzLines: { color: '#1A2129' } },
+        crosshair: { mode: 0 },
+        rightPriceScale: { borderColor: '#242B33', scaleMargins: { top: 0.05, bottom: 0.25 } },
+        timeScale: { borderColor: '#242B33', timeVisible: isIntraday, secondsVisible: false },
+      })
+      const cs = chart.addSeries(CandlestickSeries, { upColor: '#EF4444', downColor: '#22C55E', borderUpColor: '#EF4444', borderDownColor: '#22C55E', wickUpColor: '#EF4444', wickDownColor: '#22C55E' })
+      const vs = chart.addSeries(HistogramSeries, { priceFormat: { type: 'volume' }, priceScaleId: '' })
+      vs.priceScale().applyOptions({ scaleMargins: { top: 0.78, bottom: 0 } })
+      cs.setData(displayData.map((d,i) => toCandle(d,i)))
+      vs.setData(displayData.map((d,i) => toVol(d,i)))
+      chartRef.current = { chart, cs, vs }
+      const onResize = () => chart.applyOptions({ width: container.clientWidth })
+      window.addEventListener('resize', onResize)
+      return () => { window.removeEventListener('resize', onResize); chart.remove(); chartRef.current = null }
+    }
 
-  // Refresh all data when displayData changes (real-time updates without recreating chart)
-  useEffect(() => {
-    const ref = chartRef.current
-    if (!ref || !displayData.length) return
-    ref.cs.setData(displayData.map((d,i) => toCandle(d,i)))
-    ref.vs.setData(displayData.map((d,i) => toVol(d,i)))
-  }, [displayData])
+    // Data changed: just update series
+    if (prev.kdata !== kdata || prev.isIntraday !== isIntraday) {
+      // Source changed → full setData
+      prev.cs.setData(displayData.map((d,i) => toCandle(d,i)))
+      prev.vs.setData(displayData.map((d,i) => toVol(d,i)))
+    } else {
+      // Only last candle changed → update
+      const last = displayData[displayData.length - 1]
+      const t = toTime(last, displayData.length - 1)
+      prev.cs.update({ time: t, open: last.open, high: last.high, low: last.low, close: last.close })
+      prev.vs.update({ time: t, value: last.volume || 0, color: last.close >= last.open ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.4)' })
+    }
+    // Save state for next comparison
+    prev.kdata = kdata
+    prev.isIntraday = isIntraday
+  }, [displayData, kdata, isIntraday])
 
   return (
     <div className="px-4 pb-3">

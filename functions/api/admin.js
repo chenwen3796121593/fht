@@ -57,7 +57,7 @@ export async function onRequest(context) {
       const { username, password } = body
 
       const adminUser = env.ADMIN_USER || 'chen'
-      const adminPass = env.ADMIN_PASS || '859168'
+      const adminPass = env.ADMIN_PASS; if (!adminPass) return json({ error: 'Server config error' }, 500)
       const adminSecret = env.ADMIN_SECRET
       if (!adminSecret) return json({ error: 'Server config error' }, 500)
 
@@ -75,7 +75,8 @@ export async function onRequest(context) {
   // POST /api/admin/verify — token verification
   try {
     const body = await request.json()
-    const adminSecret = env.ADMIN_SECRET || 'fh-secret-change-me'
+    const adminSecret = env.ADMIN_SECRET
+    if (!adminSecret) return json({ error: 'Server config error' }, 500)
     const valid = await verifyToken(body.token, adminSecret)
     return json({ valid })
   } catch (e) {

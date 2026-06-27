@@ -38,6 +38,10 @@ export const DEFAULT_WATCHLIST = [
 ]
 
 // Symbol normalization: add exchange prefix
+// Supabase for commodity_rankings (MetalsPage) — ensure RLS is ON in Supabase dashboard
+export const METALS_SB_URL = 'https://apfdgetfqxgbplariowa.supabase.co'
+export const METALS_SB_KEY = 'sb_publishable_rb8wBIRHHXMOYSjDs8-LIQ_7jTR2B5o'
+
 export function normalizeSymbol(sym) {
   if (!sym) return ''
   if (sym.startsWith('sh') || sym.startsWith('sz') || sym.startsWith('bj') || sym.startsWith('hf_') || sym.startsWith('nf_')) return sym

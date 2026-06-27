@@ -82,7 +82,7 @@ export default function ChatPage() {
             return next
           })
         }).subscribe()
-      } catch(e) { console.error('Channel error:', e) }
+      } catch(e) {}
     })()
 
     return () => { cancelled = true; try { if (sbRef.current) sbRef.current.removeAllChannels() } catch {} }
