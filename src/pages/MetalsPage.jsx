@@ -129,7 +129,7 @@ export default function MetalsPage() {
       </div>
 
       {/* Fixed footer */}
-      <div className="flex-shrink-0 px-4 flex items-center justify-center gap-8 pb-4 pt-2 border-t border-[#1A2129]">
+      <div className="flex-shrink-0 px-4 flex items-center justify-center gap-8 pb-4">
         <div className="text-[10px] text-[#6B7280] leading-relaxed text-center">
           <div>回购黄金/铂金/钯金/银</div>
           <div>湖南省衡阳市</div>
