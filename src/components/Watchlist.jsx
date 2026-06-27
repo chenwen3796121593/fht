@@ -73,7 +73,7 @@ export default function Watchlist({ selected, onSelect, prices = {}, customStock
     setSearching(false)
   }
 
-  const all = [...WATCH_ITEMS, ...customStocks]
+  const all = [...DEFAULT_WATCHLIST, ...customStocks]
 
   return (
     <div className="px-4 pb-3">
