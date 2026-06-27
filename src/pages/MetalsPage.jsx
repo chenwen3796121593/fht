@@ -130,7 +130,8 @@ export default function MetalsPage() {
 
       {/* Fixed footer */}
       <div className="flex-shrink-0 px-4 flex items-center justify-center gap-8 pb-4">
-        <div className="text-[10px] text-[#6B7280] leading-relaxed text-center">
+        <div className="text-[10px] text-[#6B7280] leading-relaxed text-center flex flex-col justify-center">
+          <div>扫码添加微信</div>
           <div>回购黄金/铂金/钯金/银</div>
           <div>湖南省衡阳市</div>
         </div>
