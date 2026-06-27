@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import TopBar from '../components/TopBar'
-import { MessageCircle, Mic, Send, Smile, Laugh, Heart, ThumbsUp, ThumbsDown, Star, Flame, Rocket, Gem, BadgeCheck, TrendingUp, TrendingDown, DollarSign, PartyPopper, Angry, Frown, Annoyed, Crown, Target, Zap, Eye, Hand, Handshake, Clover, Coffee, Beer, Sun, Moon, CloudRain, Gift, Music, Clock, Lightbulb, Camera, MapPin, Car, Home, Pizza, ShoppingCart, Gamepad2, Tv, Bed, Sparkles, Bomb, Shield, Ban, Pin, Bookmark } from 'lucide-react'
+import { MessageCircle, Mic, Send, Smile, Laugh, Heart, ThumbsUp, ThumbsDown, Star, Flame, Rocket, Gem, BadgeCheck, TrendingUp, TrendingDown, DollarSign, PartyPopper, Angry, Frown, Annoyed, Crown, Target, Zap, Eye, Hand, Handshake, Clover, Coffee, Beer, Sun, Moon, CloudRain, Gift, Music, Clock, Lightbulb, Camera, MapPin, Car, Home, Pizza, ShoppingCart, Gamepad2, Tv, Bed, Sparkles, Bomb, Shield, Ban, Pin, Bookmark, AtSign } from 'lucide-react'
 import { getSB } from '../lib/supabase.js'
 
 const EMOJIS = [
@@ -18,6 +18,11 @@ function fmtTime(d) {
   const time = dt.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
   if (dt.toDateString() === now.toDateString()) return time
   return dt.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }) + ' ' + time
+}
+
+function extractMention(text) {
+  const match = text.match(/@(\S+)/)
+  return match ? match[1] : null
 }
 
 function JoinScreen({ nick, setNick, connected, onJoin }) {
@@ -44,11 +49,18 @@ export default function ChatPage() {
   const [historyLoaded, setHistoryLoaded] = useState(false)
   const [recording, setRecording] = useState(false)
   const [showEmoji, setShowEmoji] = useState(false)
+  const [onlineUsers, setOnlineUsers] = useState([])
+  const [recentUsers, setRecentUsers] = useState([])
+  const [showAtList, setShowAtList] = useState(false)
+  const inputRef = useRef(null)
   const msgEndRef = useRef(null)
   const mediaRef = useRef(null)
   const sbRef = useRef(null)
 
   useEffect(() => {
+    // Clear mention badge on enter
+    localStorage.setItem('fh_mention_badge', '0')
+
     // Instant cache
     const cached = localStorage.getItem('fh_chat_cache')
     if (cached) { try { const parsed = JSON.parse(cached); if (parsed.length > 0) setMsgs(parsed) } catch {} }
@@ -60,11 +72,32 @@ export default function ChatPage() {
       sbRef.current = sb
       setConnected(true)
 
+      // ---- Presence tracking ----
+      const presenceChannel = sb.channel('online-users', {
+        config: { presence: { key: nick } }
+      })
+      presenceChannel.on('presence', { event: 'sync' }, () => {
+        const state = presenceChannel.presenceState()
+        const users = [...new Set(Object.values(state).flatMap(arr => arr.map(p => p.user || p.nick)).filter(Boolean))]
+        setOnlineUsers(users)
+      }).subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await presenceChannel.track({ user: nick, online_at: new Date().toISOString() })
+        }
+      })
+
+      // Fetch recent 24h active users for @mention list
+      try {
+        const dayAgo = new Date(Date.now() - 86400000).toISOString()
+        const { data: recentData } = await sb.from('messages').select('username').gte('created_at', dayAgo).order('created_at', { ascending: false }).limit(100)
+        if (recentData) setRecentUsers([...new Set(recentData.map(r => r.username))])
+      } catch(e) {}
+
       try {
         const dayAgo = new Date(Date.now() - 86400000).toISOString()
         const { data } = await sb.from('messages').select('*').gte('created_at', dayAgo).order('created_at', { ascending: false }).limit(50)
         if (!cancelled && data?.length) {
-          const mapped = data.reverse().map(m => ({ id: m.id, user: m.username, text: m.text, voice_url: m.voice_url, time: fmtTime(m.created_at) }))
+          const mapped = data.reverse().map(m => ({ id: m.id, user: m.username, text: m.text, voice_url: m.voice_url, mentioned_user: m.mentioned_user, time: fmtTime(m.created_at) }))
           setMsgs(mapped)
           localStorage.setItem('fh_chat_cache', JSON.stringify(mapped.slice(-30)))
         }
@@ -74,10 +107,16 @@ export default function ChatPage() {
       try {
         sb.channel('chat-room').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
           const m = payload.new
+
+          // Badge if mentioned (not self-send)
+          if (m.mentioned_user === nick && m.username !== nick) {
+            try { const n = parseInt(localStorage.getItem('fh_mention_badge') || '0'); localStorage.setItem('fh_mention_badge', String(n + 1)) } catch {}
+          }
+
           setMsgs(prev => {
             if (prev.find(p => p.id === m.id)) return prev
             const cleaned = prev.filter(p => !(String(p.id).startsWith('tmp_') && p.user === m.username))
-            const next = [...cleaned, { id: m.id, user: m.username, text: m.text, voice_url: m.voice_url, time: fmtTime(m.created_at) }]
+            const next = [...cleaned, { id: m.id, user: m.username, text: m.text, voice_url: m.voice_url, mentioned_user: m.mentioned_user, time: fmtTime(m.created_at) }]
             localStorage.setItem('fh_chat_cache', JSON.stringify(next.slice(-30)))
             return next
           })
@@ -92,13 +131,25 @@ export default function ChatPage() {
 
   const send = async () => {
     const t = input.trim(); if (!t) return; setInput('')
+    const mentioned = extractMention(t)
     const tempId = 'tmp_' + Date.now()
-    setMsgs(prev => { const next = [...prev, { id: tempId, user: nick, text: t, time: fmtTime(new Date()) }]; localStorage.setItem('fh_chat_cache', JSON.stringify(next.slice(-30))); return next })
+    setMsgs(prev => { const next = [...prev, { id: tempId, user: nick, text: t, mentioned_user: mentioned, time: fmtTime(new Date()) }]; localStorage.setItem('fh_chat_cache', JSON.stringify(next.slice(-30))); return next })
     try {
       const client = await getSB()
-      const { error } = await client.from('messages').insert({ username: nick, text: t })
+      let { error } = await client.from('messages').insert({ username: nick, text: t, ...(mentioned ? { mentioned_user: mentioned } : {}) })
+      if (error && mentioned) {
+        // Retry without mentioned_user if column doesn't exist
+        const retry = await client.from('messages').insert({ username: nick, text: t })
+        error = retry.error
+      }
       if (error) setMsgs(prev => prev.filter(m => m.id !== tempId))
     } catch(e) { setMsgs(prev => prev.filter(m => m.id !== tempId)) }
+  }
+
+  const insertAt = (user) => {
+    setInput(prev => prev + '@' + user + ' ')
+    setShowAtList(false)
+    inputRef.current?.focus()
   }
 
   const toggleRecord = async () => {
@@ -139,19 +190,22 @@ export default function ChatPage() {
     <div className="bg-[#0A0F14] h-full overflow-hidden flex flex-col">
       <TopBar active="chat" />
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
-        {msgs.map((m) => (
-          <div key={m.id} className={`flex ${m.user === nick ? 'justify-end' : 'justify-start'}`}>
-            <div className="max-w-[75%] flex flex-col">
-              {m.user !== nick && <span className="text-[10px] text-[#8D949E] mb-0.5 ml-1">{m.user}</span>}
-              {m.voice_url ? (
-                <audio src={m.voice_url} controls className="h-8 w-[180px]" preload="metadata" />
-              ) : (
-                <div className={`px-3 py-2 rounded-xl text-sm ${m.user === nick ? 'bg-[#3B82F6] text-white rounded-br-sm' : 'bg-[#1A2129] text-[#E5E7EB] rounded-bl-sm'}`}>{m.text}</div>
-              )}
-              <span className="text-[9px] text-[#4D545C] mt-0.5 mx-1">{m.time}</span>
+        {msgs.map((m) => {
+          const isMentioned = m.mentioned_user === nick
+          return (
+            <div key={m.id} className={`flex ${m.user === nick ? 'justify-end' : 'justify-start'}`}>
+              <div className="max-w-[75%] flex flex-col">
+                {m.user !== nick && <span className="text-[10px] text-[#8D949E] mb-0.5 ml-1">{m.user}</span>}
+                {m.voice_url ? (
+                  <audio src={m.voice_url} controls className={`h-8 w-[180px] ${isMentioned ? 'ring-1 ring-[#3B82F6] rounded' : ''}`} preload="metadata" />
+                ) : (
+                  <div className={`px-3 py-2 rounded-xl text-sm ${m.user === nick ? 'bg-[#3B82F6] text-white rounded-br-sm' : isMentioned ? 'bg-[#1A2129] text-[#E5E7EB] rounded-bl-sm border-l-2 border-[#3B82F6]' : 'bg-[#1A2129] text-[#E5E7EB] rounded-bl-sm'}`}>{m.text}</div>
+                )}
+                <span className="text-[9px] text-[#4D545C] mt-0.5 mx-1">{m.time}</span>
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
         <div ref={msgEndRef} />
       </div>
       <div className="bg-[#0A0F14] border-t border-[#242B33] px-3 py-2 flex gap-1.5 relative">
@@ -159,8 +213,12 @@ export default function ChatPage() {
           {recording ? <><span className="w-2 h-2 rounded-full bg-white animate-pulse" /><span className="text-xs">停止</span></> : <Mic size={16} />}
         </button>
         <button onClick={() => setShowEmoji(!showEmoji)} className={`h-10 w-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${showEmoji ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}><Smile size={16} /></button>
-        <input className="flex-1 bg-[#1A2129] rounded-lg px-3 py-2.5 text-sm text-[#F0F2F5] outline-none" placeholder="输入文字..." value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { send(); setShowEmoji(false) } }} onFocus={() => setShowEmoji(false)} />
-        <button onClick={() => { send(); setShowEmoji(false) }} disabled={!input.trim()} className="px-3 py-2.5 bg-[#3B82F6] text-white rounded-lg font-medium disabled:opacity-50 flex-shrink-0 flex items-center justify-center"><Send size={16} /></button>
+        <button onClick={() => { setShowAtList(!showAtList); setShowEmoji(false) }}
+          className={`h-10 w-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${showAtList ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}><AtSign size={16} /></button>
+        <input ref={inputRef} className="flex-1 bg-[#1A2129] rounded-lg px-3 py-2.5 text-sm text-[#F0F2F5] outline-none" placeholder="输入文字..." value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { send(); setShowEmoji(false); setShowAtList(false) } }} onFocus={() => { setShowEmoji(false); setShowAtList(false) }} />
+        <button onClick={() => { send(); setShowEmoji(false); setShowAtList(false) }} disabled={!input.trim()} className="px-3 py-2.5 bg-[#3B82F6] text-white rounded-lg font-medium disabled:opacity-50 flex-shrink-0 flex items-center justify-center"><Send size={16} /></button>
+
+        {/* Emoji panel */}
         {showEmoji && (
           <div className="absolute bottom-12 left-12 bg-[#1A2129] border border-[#242B33] rounded-xl p-2.5 shadow-2xl z-20">
             <div className="grid grid-cols-8 gap-1">
@@ -168,6 +226,26 @@ export default function ChatPage() {
             </div>
           </div>
         )}
+
+        {/* @mention user list */}
+        {showAtList && (() => {
+          const allUsers = [...new Set([...onlineUsers, ...recentUsers])].filter(u => u !== nick)
+          return (
+            <div className="absolute bottom-12 left-[88px] bg-[#1A2129] border border-[#242B33] rounded-xl p-2 shadow-2xl z-20 min-w-[120px] max-h-[200px] overflow-y-auto">
+              <div className="text-[10px] text-[#4D545C] mb-1.5 px-1">选择提醒对象</div>
+              {allUsers.length === 0 && <div className="text-xs text-[#4D545C] px-1 py-2">暂无用户</div>}
+              {allUsers.map(u => {
+                const isOnline = onlineUsers.includes(u)
+                return (
+                  <button key={u} onClick={() => insertAt(u)}
+                    className="w-full text-left px-2 py-1.5 rounded text-xs text-[#F0F2F5] hover:bg-[#242B33] flex items-center gap-2 transition-colors">
+                    <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-[#22C55E]' : 'bg-[#4D545C]'}`} />{u}
+                  </button>
+                )
+              })}
+            </div>
+          )
+        })()}
       </div>
     </div>
   )

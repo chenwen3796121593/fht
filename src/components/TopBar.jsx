@@ -18,10 +18,14 @@ function useClock() {
 function hasActiveAlerts() {
   try { return JSON.parse(localStorage.getItem('fh_alerts') || '[]').some(a => a.active) } catch { return false }
 }
+function hasMentionBadge() {
+  try { return parseInt(localStorage.getItem('fh_mention_badge') || '0') > 0 } catch { return false }
+}
 
 export default function TopBar({ active }) {
   const { navigate } = useApp()
   const showBadge = hasActiveAlerts()
+  const mentionBadge = hasMentionBadge()
   const clock = useClock()
 
   return (
@@ -42,6 +46,7 @@ export default function TopBar({ active }) {
             className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm relative transition-colors ${isActive ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E] hover:text-[#F0F2F5]'}`}>
             <Icon size={ICON_SZ} />
             {page === 'alerts' && showBadge && <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 bg-[#EF4444] rounded-full" />}
+            {page === 'chat' && mentionBadge && <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 bg-[#22C55E] rounded-full" />}
           </button>
         )
       })}
