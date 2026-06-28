@@ -133,7 +133,7 @@ export default function MetalsPage() {
           <div>回购黄金/铂金/钯金/银</div>
           <div>湖南省衡阳市</div>
         </div>
-        <img src="/qrcode.jpg" alt="微信二维码" className="w-14 h-14 rounded-lg border border-[#242B33] object-cover" />
+        <img src="/qrcode.jpg?v=2" alt="微信二维码" className="w-14 h-14 rounded-lg border border-[#242B33] object-cover" />
       </div>
     </div>
   )

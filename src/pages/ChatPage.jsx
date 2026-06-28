@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import TopBar from '../components/TopBar'
-import { MessageCircle, Mic, Send, Smile, Laugh, Heart, ThumbsUp, ThumbsDown, Star, Flame, Rocket, Gem, BadgeCheck, TrendingUp, TrendingDown, DollarSign, PartyPopper, Angry, Frown, Annoyed, Crown, Target, Zap, Eye, Hand, Handshake, Clover, Coffee, Beer, Sun, Moon, CloudRain, Gift, Music, Clock, Lightbulb, Camera, MapPin, Car, Home, Pizza, ShoppingCart, Gamepad2, Tv, Bed, Sparkles, Bomb, Shield, Ban, Pin, Bookmark, AtSign } from 'lucide-react'
+import { MessageCircle, Mic, Send, Smile, Laugh, Heart, ThumbsUp, ThumbsDown, Star, Flame, Rocket, Gem, BadgeCheck, TrendingUp, TrendingDown, DollarSign, PartyPopper, Angry, Frown, Annoyed, Crown, Target, Zap, Eye, Hand, Handshake, Clover, Coffee, Beer, Sun, Moon, CloudRain, Gift, Music, Clock, Lightbulb, Camera, MapPin, Car, Home, Pizza, ShoppingCart, Gamepad2, Tv, Bed, Sparkles, Bomb, Shield, Ban, Pin, Bookmark, AtSign, Video } from 'lucide-react'
 import { getSB } from '../lib/supabase.js'
+import VideoRoom from '../components/VideoRoom.jsx'
 
 const EMOJIS = [
   { icon: Smile, label: '😊' },{ icon: Laugh, label: '😂' },{ icon: PartyPopper, label: '🎉' },{ icon: Heart, label: '❤️' },{ icon: ThumbsUp, label: '👍' },{ icon: ThumbsDown, label: '👎' },{ icon: Star, label: '⭐' },{ icon: Flame, label: '🔥' },
@@ -52,6 +53,7 @@ export default function ChatPage() {
   const [onlineUsers, setOnlineUsers] = useState([])
   const [recentUsers, setRecentUsers] = useState([])
   const [showAtList, setShowAtList] = useState(false)
+  const [videoRoom, setVideoRoom] = useState(null)
   const inputRef = useRef(null)
   const msgEndRef = useRef(null)
   const mediaRef = useRef(null)
@@ -62,6 +64,12 @@ export default function ChatPage() {
     localStorage.setItem('fh_mention_badge', '0')
 
     // Instant cache
+    // Auto-clear cache from previous days
+    const today = new Date().toDateString()
+    if (localStorage.getItem('fh_cache_date') !== today) {
+      localStorage.removeItem('fh_chat_cache')
+      localStorage.setItem('fh_cache_date', today)
+    }
     const cached = localStorage.getItem('fh_chat_cache')
     if (cached) { try { const parsed = JSON.parse(cached); if (parsed.length > 0) setMsgs(parsed) } catch {} }
 
@@ -116,7 +124,11 @@ export default function ChatPage() {
           setMsgs(prev => {
             if (prev.find(p => p.id === m.id)) return prev
             const cleaned = prev.filter(p => !(String(p.id).startsWith('tmp_') && p.user === m.username))
-            const next = [...cleaned, { id: m.id, user: m.username, text: m.text, voice_url: m.voice_url, mentioned_user: m.mentioned_user, time: fmtTime(m.created_at) }]
+            // Detect video room invite from text
+            const vidMatch = (m.text || '').match(/📹 视频通话 #(\w+)/)
+            const msg = { id: m.id, user: m.username, text: m.text, voice_url: m.voice_url, mentioned_user: m.mentioned_user, time: fmtTime(m.created_at) }
+            if (vidMatch) { msg.isVideoLink = true; msg.videoRoomId = vidMatch[1] }
+            const next = [...cleaned, msg]
             localStorage.setItem('fh_chat_cache', JSON.stringify(next.slice(-30)))
             return next
           })
@@ -150,6 +162,19 @@ export default function ChatPage() {
     setInput(prev => prev + '@' + user + ' ')
     setShowAtList(false)
     inputRef.current?.focus()
+  }
+
+  const startVideo = async () => {
+    const roomId = Math.random().toString(36).slice(2, 8)
+    setVideoRoom(roomId)
+    // Insert to Supabase — subscription will deliver to everyone (including self)
+    try {
+      const client = await getSB()
+      await client.from('messages').insert({ username: nick, text: '📹 视频通话 #' + roomId })
+    } catch(e) {}
+  }
+  const joinVideoRoom = (roomId) => {
+    setVideoRoom(roomId)
   }
 
   const toggleRecord = async () => {
@@ -198,6 +223,13 @@ export default function ChatPage() {
                 {m.user !== nick && <span className="text-[10px] text-[#8D949E] mb-0.5 ml-1">{m.user}</span>}
                 {m.voice_url ? (
                   <audio src={m.voice_url} controls className={`h-8 w-[180px] ${isMentioned ? 'ring-1 ring-[#3B82F6] rounded' : ''}`} preload="metadata" />
+                ) : m.isVideoLink ? (
+                  <div className={`px-3 py-2 rounded-xl text-sm bg-[#1A2129] text-[#E5E7EB] rounded-bl-sm`}>
+                    <div className="flex items-center gap-2">
+                      <span>{m.text.replace(' #' + m.videoRoomId, '')}</span>
+                      <button onClick={() => joinVideoRoom(m.videoRoomId)} className="text-[10px] px-2 py-0.5 rounded bg-[#22C55E] text-white font-medium hover:opacity-80 transition-opacity">加入</button>
+                    </div>
+                  </div>
                 ) : (
                   <div className={`px-3 py-2 rounded-xl text-sm ${m.user === nick ? 'bg-[#3B82F6] text-white rounded-br-sm' : isMentioned ? 'bg-[#1A2129] text-[#E5E7EB] rounded-bl-sm border-l-2 border-[#3B82F6]' : 'bg-[#1A2129] text-[#E5E7EB] rounded-bl-sm'}`}>{m.text}</div>
                 )}
@@ -208,19 +240,22 @@ export default function ChatPage() {
         })}
         <div ref={msgEndRef} />
       </div>
-      <div className="bg-[#0A0F14] border-t border-[#242B33] px-3 py-2 flex gap-1.5 relative">
-        <button onClick={toggleRecord} className={`h-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${recording ? 'bg-[#EF4444] text-white w-[72px] gap-1' : 'bg-[#1A2129] text-[#8D949E] w-10'}`}>
-          {recording ? <><span className="w-2 h-2 rounded-full bg-white animate-pulse" /><span className="text-xs">停止</span></> : <Mic size={16} />}
+      {videoRoom && <VideoRoom roomId={videoRoom} nick={nick} onClose={() => setVideoRoom(null)} />}
+      <div className="bg-[#0A0F14] border-t border-[#242B33] px-2 pt-1.5 pb-3 flex gap-0.5 relative">
+        <button onClick={toggleRecord} className={`h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${recording ? 'bg-[#EF4444] text-white w-[60px] gap-0.5' : 'bg-[#1A2129] text-[#8D949E] w-8'}`}>
+          {recording ? <><span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" /><span className="text-[9px]">停止</span></> : <Mic size={14} />}
         </button>
-        <button onClick={() => setShowEmoji(!showEmoji)} className={`h-10 w-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${showEmoji ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}><Smile size={16} /></button>
+        <button onClick={startVideo}
+          className="h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-[#1A2129] text-[#8D949E] hover:text-[#F0F2F5] transition-colors"><Video size={14} /></button>
+        <input ref={inputRef} className="flex-1 min-w-0 bg-[#1A2129] rounded-lg px-2 py-2 text-xs text-[#F0F2F5] outline-none" placeholder="输入文字..." value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { send(); setShowEmoji(false); setShowAtList(false) } }} onFocus={() => { setShowEmoji(false); setShowAtList(false) }} />
+        <button onClick={() => { send(); setShowEmoji(false); setShowAtList(false) }} disabled={!input.trim()} className="h-8 px-2 bg-[#3B82F6] text-white rounded-lg text-xs font-medium disabled:opacity-50 flex-shrink-0 flex items-center justify-center"><Send size={14} /></button>
+        <button onClick={() => setShowEmoji(!showEmoji)} className={`h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${showEmoji ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}><Smile size={14} /></button>
         <button onClick={() => { setShowAtList(!showAtList); setShowEmoji(false) }}
-          className={`h-10 w-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${showAtList ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}><AtSign size={16} /></button>
-        <input ref={inputRef} className="flex-1 bg-[#1A2129] rounded-lg px-3 py-2.5 text-sm text-[#F0F2F5] outline-none" placeholder="输入文字..." value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { send(); setShowEmoji(false); setShowAtList(false) } }} onFocus={() => { setShowEmoji(false); setShowAtList(false) }} />
-        <button onClick={() => { send(); setShowEmoji(false); setShowAtList(false) }} disabled={!input.trim()} className="px-3 py-2.5 bg-[#3B82F6] text-white rounded-lg font-medium disabled:opacity-50 flex-shrink-0 flex items-center justify-center"><Send size={16} /></button>
+          className={`h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${showAtList ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}><AtSign size={14} /></button>
 
         {/* Emoji panel */}
         {showEmoji && (
-          <div className="absolute bottom-12 left-12 bg-[#1A2129] border border-[#242B33] rounded-xl p-2.5 shadow-2xl z-20">
+          <div className="absolute bottom-11 left-12 bg-[#1A2129] border border-[#242B33] rounded-xl p-2.5 shadow-2xl z-20">
             <div className="grid grid-cols-8 gap-1">
               {EMOJIS.map((em, i) => { const Icon = em.icon; return <button key={i} onClick={() => { setInput(prev => prev + em.label); setShowEmoji(false) }} className="w-8 h-8 flex items-center justify-center text-[#8D949E] hover:text-[#F0F2F5] hover:bg-[#242B33] rounded-lg transition-colors" title={em.label}><Icon size={16} /></button> })}
             </div>
@@ -231,7 +266,7 @@ export default function ChatPage() {
         {showAtList && (() => {
           const allUsers = [...new Set([...onlineUsers, ...recentUsers])].filter(u => u !== nick)
           return (
-            <div className="absolute bottom-12 left-[88px] bg-[#1A2129] border border-[#242B33] rounded-xl p-2 shadow-2xl z-20 min-w-[120px] max-h-[200px] overflow-y-auto">
+            <div className="absolute bottom-11 left-[80px] bg-[#1A2129] border border-[#242B33] rounded-xl p-2 shadow-2xl z-20 min-w-[120px] max-h-[200px] overflow-y-auto">
               <div className="text-[10px] text-[#4D545C] mb-1.5 px-1">选择提醒对象</div>
               {allUsers.length === 0 && <div className="text-xs text-[#4D545C] px-1 py-2">暂无用户</div>}
               {allUsers.map(u => {

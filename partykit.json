@@ -1,0 +1,5 @@
+{
+  "name": "fenghuotai-video",
+  "main": "party/server.js",
+  "compatibilityDate": "2026-06-28"
+}

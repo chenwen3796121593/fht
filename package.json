@@ -12,7 +12,10 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",
     "iconv-lite": "^0.7.2",
+    "lightweight-charts": "^5.2.0",
     "lucide-react": "^1.21.0",
+    "partykit": "^0.0.115",
+    "partykit.io": "^0.0.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6"
   },

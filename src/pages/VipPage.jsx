@@ -8,6 +8,12 @@ import VipLogin from './vip/VipLogin'
 import VipMember from './vip/VipMember'
 import VipAdmin from './vip/VipAdmin'
 
+async function hashPwd(pwd) {
+  const enc = new TextEncoder().encode(pwd)
+  const hash = await crypto.subtle.digest('SHA-256', enc)
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
 export default function VipPage() {
   const { showToast } = useApp()
   const [phone, setPhone] = useState('')
@@ -58,8 +64,18 @@ export default function VipPage() {
         try { const result = await loginAsAdmin(username.trim(), password.trim()); if (result.token) { setLoggedIn(true); setCurrentUser(username.trim()); setIsAdmin(true); localStorage.setItem('fh_vip_user', username.trim()); return } } catch(e) {}
       }
       const client = await getSB()
-      const { data, error } = await client.from('vip_users').select('*').eq('username', username.trim()).eq('password', password.trim()).single()
-      if (error || !data) { setLoginErr('用户名或密码错误'); return }
+      const hashed = await hashPwd(password.trim())
+      // Try hashed first, then plaintext (legacy)
+      let { data, error } = await client.from('vip_users').select('*').eq('username', username.trim()).eq('password', hashed).single()
+      if (error || !data) {
+        const legacy = await client.from('vip_users').select('*').eq('username', username.trim()).eq('password', password.trim()).single()
+        if (!legacy.error && legacy.data) {
+          // Migrate to hashed
+          await client.from('vip_users').update({ password: hashed }).eq('username', username.trim())
+          data = legacy.data
+        }
+      }
+      if (error && !data) { setLoginErr('用户名或密码错误'); return }
       setLoggedIn(true); setCurrentUser(data.username); setIsAdmin(data.username === ADMIN_USERNAME); localStorage.setItem('fh_vip_user', data.username)
     } catch(e) { setLoginErr('登录失败') }
   }
@@ -71,7 +87,8 @@ export default function VipPage() {
     const pwd = prompt('为该会员设置登录密码（6位以上）', app.phone.slice(-6))
     if (!pwd) throw new Error('已取消'); if (pwd.length < 6) throw new Error('密码至少6位')
     const client = await getSB()
-    const { error: insertErr } = await client.from('vip_users').insert({ username: app.phone, password: pwd, phone: app.phone })
+    const hashed = await hashPwd(pwd)
+    const { error: insertErr } = await client.from('vip_users').upsert({ username: app.phone, password: hashed, phone: app.phone }, { onConflict: 'username' })
     if (insertErr) throw new Error(insertErr.message)
     const { error: updateErr } = await client.from('vip_applications').update({ status: 'approved' }).eq('id', app.id)
     if (updateErr) throw new Error(updateErr.message)

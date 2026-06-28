@@ -13,38 +13,52 @@ function LineChart({ data, lines, shData, height = 110 }) {
   useEffect(() => {
     if (!containerRef.current || !data || data.length < 2) return
     const width = containerRef.current.clientWidth || 170
-    if (chartRef.current) { chartRef.current.remove(); chartRef.current = null }
-
-    const chart = createChart(containerRef.current, {
-      width, height,
-      layout: { background: { type: ColorType.Solid, color: '#0D1117' }, textColor: 'rgba(255,255,255,0.4)' },
-      grid: { vertLines: { visible: false }, horzLines: { visible: false } },
-      crosshair: { mode: 1 },
-      rightPriceScale: { visible: false },
-      timeScale: { visible: false },
-      handleScroll: false, handleScale: false,
-    })
-
     const chartData = data.map((d, i) => ({ time: i, ...d }))
-    lines.forEach(line => {
-      const s = chart.addSeries(LineSeries, { color: line.color, lineWidth: 1, priceLineVisible: false, lastValueVisible: false })
-      if (line.dash) s.applyOptions({ lineStyle: 2 })
-      s.setData(chartData.map(d => ({ time: d.time, value: d[line.key] || 0 })))
-    })
 
-    if (shData) {
-      const shMap = {}; shData.forEach(s => { shMap[s.date] = s.close })
-      const shVals = data.map(d => shMap[d.date]).filter(v => v != null)
-      if (shVals.length > 1) {
-        const shSeries = chart.addSeries(LineSeries, { color: 'rgba(180,180,180,0.5)', lineWidth: 0.8, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, priceScaleId: 'sh' })
-        chart.priceScale('sh').applyOptions({ visible: false })
-        shSeries.setData(chartData.map(d => ({ time: d.time, value: shMap[d.date] || null })).filter(d => d.value != null))
+    if (!chartRef.current) {
+      // First render: create chart & series
+      const chart = createChart(containerRef.current, {
+        width, height,
+        layout: { background: { type: ColorType.Solid, color: '#0D1117' }, textColor: 'rgba(255,255,255,0.4)' },
+        grid: { vertLines: { visible: false }, horzLines: { visible: false } },
+        crosshair: { mode: 1 },
+        rightPriceScale: { visible: false },
+        timeScale: { visible: false },
+        handleScroll: false, handleScale: false,
+      })
+      const seriesMap = {}
+      lines.forEach(line => {
+        const s = chart.addSeries(LineSeries, { color: line.color, lineWidth: 1, priceLineVisible: false, lastValueVisible: false })
+        if (line.dash) s.applyOptions({ lineStyle: 2 })
+        s.setData(chartData.map(d => ({ time: d.time, value: d[line.key] || 0 })))
+        seriesMap[line.key] = s
+      })
+      if (shData) {
+        const shMap = {}; shData.forEach(s => { shMap[s.date] = s.close })
+        const shVals = data.map(d => shMap[d.date]).filter(v => v != null)
+        if (shVals.length > 1) {
+          const shSeries = chart.addSeries(LineSeries, { color: 'rgba(180,180,180,0.5)', lineWidth: 0.8, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, priceScaleId: 'sh' })
+          chart.priceScale('sh').applyOptions({ visible: false })
+          shSeries.setData(chartData.map(d => ({ time: d.time, value: shMap[d.date] || null })).filter(d => d.value != null))
+          seriesMap._sh = shSeries
+        }
+      }
+      chart.timeScale().fitContent()
+      chartRef.current = { chart, seriesMap }
+    } else {
+      // Update existing series data
+      const { seriesMap } = chartRef.current
+      lines.forEach(line => {
+        const s = seriesMap[line.key]
+        if (s) s.setData(chartData.map(d => ({ time: d.time, value: d[line.key] || 0 })))
+      })
+      if (shData && seriesMap._sh) {
+        const shMap = {}; shData.forEach(s => { shMap[s.date] = s.close })
+        seriesMap._sh.setData(chartData.map(d => ({ time: d.time, value: shMap[d.date] || null })).filter(d => d.value != null))
       }
     }
 
-    chart.timeScale().fitContent()
-    chartRef.current = chart
-    return () => { chart.remove(); chartRef.current = null }
+    return () => { if (chartRef.current) { chartRef.current.chart.remove(); chartRef.current = null } }
   }, [data, lines, shData, height])
 
   if (!data || data.length < 2) return <div className="text-[9px] text-[#4D545C] text-center py-4">暂无数据</div>

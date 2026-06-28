@@ -1,0 +1,11 @@
+name = "fenghuotai-video"
+main = "server.js"
+compatibility_date = "2026-06-27"
+
+[[durable_objects.bindings]]
+name = "VIDEO_ROOM"
+class_name = "VideoRoom"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["VideoRoom"]
