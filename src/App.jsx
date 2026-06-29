@@ -1,25 +1,21 @@
-import { Suspense, lazy, useEffect } from 'react'
+import { useState, Suspense, lazy, useEffect } from 'react'
 import { AppProvider, useApp } from './context/AppContext.jsx'
 import HomePage from './pages/HomePage'
 import NewsPage from './pages/NewsPage'
 import AlertsPage from './pages/AlertsPage'
 import MetalsPage from './pages/MetalsPage'
 import ErrorBoundary from './components/ErrorBoundary'
+import IncomingCall from './components/IncomingCall'
+import VideoRoom from './components/VideoRoom'
 
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const IndicatorsPage = lazy(() => import('./pages/IndicatorsPage'))
 const ChatPage = lazy(() => import('./pages/ChatPage'))
 const VipPage = lazy(() => import('./pages/VipPage'))
 
-// Preload heavy chunks in background after page becomes idle
 function usePreload() {
   useEffect(() => {
-    const preload = () => {
-      import('./pages/Dashboard')
-      import('./pages/IndicatorsPage')
-      import('./pages/ChatPage')
-      import('./pages/VipPage')
-    }
+    const preload = () => { import('./pages/Dashboard'); import('./pages/IndicatorsPage'); import('./pages/ChatPage'); import('./pages/VipPage') }
     const idle = 'requestIdleCallback' in window ? requestIdleCallback : setTimeout
     const id = idle(preload, { timeout: 3000 })
     return () => { 'cancelIdleCallback' in window ? cancelIdleCallback(id) : clearTimeout(id) }
@@ -32,7 +28,6 @@ function Loading() {
 
 function PageRouter() {
   const { currentPage } = useApp()
-
   return (
     <div className="bg-[#0A0F14] mx-auto overflow-hidden max-sm:max-w-[390px] sm:max-w-[480px] w-full h-dvh">
       {currentPage === 'home' && <HomePage />}
@@ -49,10 +44,27 @@ function PageRouter() {
 
 function Preloader() { usePreload(); return null }
 
+function CallManager() {
+  const { incomingCall, dismissIncoming } = useApp()
+  const [callRoom, setCallRoom] = useState(null)
+  const nick = (() => { try { return localStorage.getItem('fh_nick') || '' } catch { return '' } })()
+
+  const accept = (rid) => { setCallRoom(rid); dismissIncoming() }
+  const decline = () => dismissIncoming()
+
+  return (
+    <>
+      {incomingCall && <IncomingCall from={incomingCall.from} onAccept={() => accept(incomingCall.roomId)} onDecline={decline} />}
+      {callRoom && <VideoRoom roomId={callRoom} nick={nick} onClose={() => setCallRoom(null)} />}
+    </>
+  )
+}
+
 export default function App() {
   return (
     <ErrorBoundary>
       <AppProvider>
+        <CallManager />
         <Preloader />
         <PageRouter />
       </AppProvider>

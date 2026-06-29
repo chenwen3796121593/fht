@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import TopBar from '../components/TopBar'
-import { MessageCircle, Mic, Send, Smile, Laugh, Heart, ThumbsUp, ThumbsDown, Star, Flame, Rocket, Gem, BadgeCheck, TrendingUp, TrendingDown, DollarSign, PartyPopper, Angry, Frown, Annoyed, Crown, Target, Zap, Eye, Hand, Handshake, Clover, Coffee, Beer, Sun, Moon, CloudRain, Gift, Music, Clock, Lightbulb, Camera, MapPin, Car, Home, Pizza, ShoppingCart, Gamepad2, Tv, Bed, Sparkles, Bomb, Shield, Ban, Pin, Bookmark, AtSign, Video } from 'lucide-react'
+import { MessageCircle, Mic, Send, Smile, Laugh, Heart, ThumbsUp, ThumbsDown, Star, Flame, Rocket, Gem, BadgeCheck, TrendingUp, TrendingDown, DollarSign, PartyPopper, Angry, Frown, Annoyed, Crown, Target, Zap, Eye, Hand, Handshake, Clover, Coffee, Beer, Sun, Moon, CloudRain, Gift, Music, Clock, Lightbulb, Camera, MapPin, Car, Home, Pizza, ShoppingCart, Gamepad2, Tv, Bed, Sparkles, Bomb, Shield, Ban, Pin, Bookmark, AtSign, Video, Phone } from 'lucide-react'
+import { useApp } from '../context/AppContext.jsx'
 import { getSB } from '../lib/supabase.js'
 import VideoRoom from '../components/VideoRoom.jsx'
 
@@ -175,8 +176,14 @@ export default function ChatPage() {
       await client.from('messages').insert({ username: nick, text: '📹 视频通话 #' + roomId })
     } catch(e) {}
   }
-  const joinVideoRoom = (roomId) => {
+  const { callUser } = useApp()
+  const joinVideoRoom = (roomId) => { setVideoRoom(roomId) }
+
+  const callAndOpen = (targetUser) => {
+    const roomId = Math.random().toString(36).slice(2, 8)
+    callUser(targetUser, nick, roomId)
     setVideoRoom(roomId)
+    setShowAtList(false)
   }
 
   const toggleRecord = async () => {
@@ -274,10 +281,15 @@ export default function ChatPage() {
               {allUsers.map(u => {
                 const isOnline = onlineUsers.includes(u)
                 return (
-                  <button key={u} onClick={() => insertAt(u)}
-                    className="w-full text-left px-2 py-1.5 rounded text-xs text-[#F0F2F5] hover:bg-[#242B33] flex items-center gap-2 transition-colors">
-                    <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-[#22C55E]' : 'bg-[#4D545C]'}`} />{u}
-                  </button>
+                  <div key={u} className="flex items-center hover:bg-[#242B33] rounded transition-colors">
+                    <button onClick={() => insertAt(u)}
+                      className="flex-1 text-left px-2 py-1.5 rounded text-xs text-[#F0F2F5] flex items-center gap-2">
+                      <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-[#22C55E]' : 'bg-[#4D545C]'}`} />{u}
+                    </button>
+                    <button onClick={() => callAndOpen(u)}
+                      className="px-2 py-1.5 text-[#22C55E] hover:bg-[#3B82F6]/20 rounded"
+                      title="视频通话"><Phone size={13} /></button>
+                  </div>
                 )
               })}
             </div>

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react'
 import useMarketData from '../hooks/useMarketData.js'
-import { BREADTH_INTERVAL } from '../lib/constants.js'
+import { BREADTH_INTERVAL, SUPABASE_URL, SUPABASE_KEY } from '../lib/constants.js'
+import { createClient } from '@supabase/supabase-js'
 
 const AppContext = createContext(null)
 
@@ -61,13 +62,37 @@ export function AppProvider({ children }) {
 
   const { prices, quotes, marketCards, loading } = useMarketData(extraSymbols)
 
+  const [incomingCall, setIncomingCall] = useState(null)
+  const callChannelRef = useRef(null)
+
+  // Init shared call channel
+  useEffect(() => {
+    const sb = createClient(SUPABASE_URL, SUPABASE_KEY)
+    const ch = sb.channel('fh-calls', { config: { broadcast: { self: false } } })
+    ch.on('broadcast', { event: 'call' }, ({ payload }) => {
+      setIncomingCall({ from: payload.from, roomId: payload.roomId })
+    })
+    ch.on('broadcast', { event: 'call_cancel' }, () => {
+      setIncomingCall(null)
+    })
+    ch.subscribe()
+    callChannelRef.current = ch
+    return () => { try { sb.removeChannel(ch) } catch {} }
+  }, [])
+
+  const callUser = useCallback((to, from, roomId) => {
+    callChannelRef.current?.send({ type: 'broadcast', event: 'call', payload: { to, from, roomId } })
+  }, [])
+
+  const dismissIncoming = useCallback(() => setIncomingCall(null), [])
+
   const navigate = useCallback((page) => setCurrentPage(page), [])
   const addExtraSymbol = useCallback((item) => {
     setExtraSymbols(prev => prev.some(s => s.symbol === item.symbol) ? prev : [...prev, item])
   }, [])
 
   return (
-    <AppContext.Provider value={{ currentPage, navigate, prices, quotes, marketCards, loading, addExtraSymbol, showToast, breadth }}>
+    <AppContext.Provider value={{ currentPage, navigate, prices, quotes, marketCards, loading, addExtraSymbol, showToast, breadth, incomingCall, callUser, dismissIncoming }}>
       {children}
       {toasts.length > 0 && (
         <div className="fixed bottom-16 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-1.5 pointer-events-none">
