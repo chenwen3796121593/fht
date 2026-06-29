@@ -82,6 +82,8 @@ export function AppProvider({ children }) {
 
   const callUser = useCallback((to, from, roomId) => {
     callChannelRef.current?.send({ type: 'broadcast', event: 'call', payload: { to, from, roomId } })
+    // Also try push notification for offline users
+    fetch('/api/push', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: to, from, roomId }) }).catch(() => {})
   }, [])
 
   const dismissIncoming = useCallback(() => setIncomingCall(null), [])

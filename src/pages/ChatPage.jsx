@@ -216,7 +216,22 @@ export default function ChatPage() {
     } catch(e) { setRecording(false) }
   }
 
-  const join = () => { if (!nick.trim()) return; localStorage.setItem('fh_nick', nick.trim()); setJoined(true) }
+  const join = () => { if (!nick.trim()) return; localStorage.setItem('fh_nick', nick.trim()); setJoined(true); registerPush() }
+
+  const registerPush = async () => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+    try {
+      const reg = await navigator.serviceWorker.ready
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: 'MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE_CHlcSmmVQJAeMKDr7aXgcDR04ZoToAnMqx0x9KrMXzogihudvmOUlPZh88jI3vhC3j383qbRFc7jvmtNqC5IA',
+      })
+      const subscription = JSON.stringify(sub.toJSON())
+      // Store in Supabase
+      const client = await getSB()
+      await client.from('push_tokens').upsert({ username: nick, subscription, updated_at: new Date().toISOString() }, { onConflict: 'username' })
+    } catch(e) {}
+  }
 
   if (!joined) return <JoinScreen nick={nick} setNick={setNick} connected={connected} onJoin={join} />
 

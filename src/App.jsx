@@ -46,7 +46,11 @@ function Preloader() { usePreload(); return null }
 
 function CallManager() {
   const { incomingCall, dismissIncoming } = useApp()
-  const [callRoom, setCallRoom] = useState(null)
+  const [callRoom, setCallRoom] = useState(() => {
+    // Auto-join room from push notification URL
+    const p = new URLSearchParams(window.location.search)
+    return p.get('room') || null
+  })
   const nick = (() => { try { return localStorage.getItem('fh_nick') || '' } catch { return '' } })()
 
   const accept = (rid) => { setCallRoom(rid); dismissIncoming() }
