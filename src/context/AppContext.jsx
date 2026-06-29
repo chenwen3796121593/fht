@@ -82,11 +82,19 @@ export function AppProvider({ children }) {
 
   const callUser = useCallback((to, from, roomId) => {
     callChannelRef.current?.send({ type: 'broadcast', event: 'call', payload: { to, from, roomId } })
-    // Also try push notification for offline users
-    fetch('/api/push', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: to, from, roomId }) }).catch(() => {})
   }, [])
 
   const dismissIncoming = useCallback(() => setIncomingCall(null), [])
+
+  // Global online presence — tracked regardless of which page user is on
+  useEffect(() => {
+    const nick = (() => { try { return localStorage.getItem('fh_nick') || '' } catch { return '' } })()
+    if (!nick) return
+    const sb = createClient(SUPABASE_URL, SUPABASE_KEY)
+    const ch = sb.channel('online-users', { config: { presence: { key: nick } } })
+    ch.subscribe((status) => { if (status === 'SUBSCRIBED') ch.track({ user: nick }) })
+    return () => { try { sb.removeChannel(ch).catch(()=>{}) } catch {} }
+  }, [])
 
   const navigate = useCallback((page) => setCurrentPage(page), [])
   const addExtraSymbol = useCallback((item) => {

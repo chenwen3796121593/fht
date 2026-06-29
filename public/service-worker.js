@@ -48,26 +48,10 @@ self.addEventListener('fetch', (event) => {
 
 self.addEventListener('push', (event) => {
   const data = event.data ? event.data.json() : {}
-  const isCall = data.type === 'call'
   self.registration.showNotification(data.title || '烽火台', {
-    body: data.body || data.message || '',
+    body: data.message || '',
     icon: '/icon-192.png',
-    badge: '/icon-192.png',
-    vibrate: isCall ? [300, 200, 300, 200, 300] : [200, 100, 200],
-    tag: isCall ? 'video-call-' + data.from : 'price-alert',
-    requireInteraction: isCall,
-    renotify: true,
-    data: data,
-    actions: isCall ? [{ action: 'accept', title: '接听' }, { action: 'decline', title: '拒绝' }] : [],
+    vibrate: [200, 100, 200],
+    tag: 'price-alert',
   })
-})
-
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close()
-  const data = event.notification.data || {}
-  if (data.type === 'call' && event.action === 'accept') {
-    clients.openWindow('https://fenghuotai.pages.dev?room=' + data.roomId)
-  } else if (data.type === 'call') {
-    clients.openWindow('https://fenghuotai.pages.dev')
-  }
 })
