@@ -1,29 +1,25 @@
-// Durable Object — one instance per video room
-// Stores connected WebSocket clients and broadcasts messages
-
 export class VideoRoom {
-  constructor(state, env) {
-    this.sockets = new Map()
-  }
+  constructor(state, env) { this.sessions = [] }
 
   async fetch(req) {
+    const reqUrl = typeof req === 'string' ? new URL(req) : new URL(req.url)
+    if (reqUrl.pathname === '/sessions') {
+      return new Response('Sessions:' + this.sessions.length)
+    }
+
     const pair = new WebSocketPair()
     const [client, server] = Object.values(pair)
-
-    const id = crypto.randomUUID()
-    this.sockets.set(id, server)
+    this.sessions.push(server)
     server.accept()
 
-    server.addEventListener('message', (event) => {
-      this.sockets.forEach((s, sid) => {
-        if (sid !== id && s.readyState === 1) {
-          s.send(event.data)
-        }
-      })
+    server.addEventListener('message', (e) => {
+      this.sessions = this.sessions.filter(s => s.readyState === 1)
+      this.sessions.forEach(s => { if (s !== server) s.send(e.data) })
     })
 
-    server.addEventListener('close', () => this.sockets.delete(id))
-    server.addEventListener('error', () => this.sockets.delete(id))
+    server.addEventListener('close', () => {
+      this.sessions = this.sessions.filter(s => s !== server)
+    })
 
     return new Response(null, { status: 101, webSocket: client })
   }

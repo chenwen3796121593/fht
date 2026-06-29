@@ -65,10 +65,9 @@ export default function ChatPage() {
 
     // Instant cache
     // Auto-clear cache from previous days
-    const today = new Date().toDateString()
-    if (localStorage.getItem('fh_cache_date') !== today) {
+    if (localStorage.getItem('fh_cache_ver') !== '3') {
       localStorage.removeItem('fh_chat_cache')
-      localStorage.setItem('fh_cache_date', today)
+      localStorage.setItem('fh_cache_ver', '3')
     }
     const cached = localStorage.getItem('fh_chat_cache')
     if (cached) { try { const parsed = JSON.parse(cached); if (parsed.length > 0) setMsgs(parsed) } catch {} }
@@ -124,10 +123,13 @@ export default function ChatPage() {
           setMsgs(prev => {
             if (prev.find(p => p.id === m.id)) return prev
             const cleaned = prev.filter(p => !(String(p.id).startsWith('tmp_') && p.user === m.username))
-            // Detect video room invite from text
-            const vidMatch = (m.text || '').match(/📹 视频通话 #(\w+)/)
-            const msg = { id: m.id, user: m.username, text: m.text, voice_url: m.voice_url, mentioned_user: m.mentioned_user, time: fmtTime(m.created_at) }
-            if (vidMatch) { msg.isVideoLink = true; msg.videoRoomId = vidMatch[1] }
+            // Detect video room invite from text (starts with 📹)
+            const txt = m.text || ''
+            const msg = { id: m.id, user: m.username, text: txt, voice_url: m.voice_url, mentioned_user: m.mentioned_user, time: fmtTime(m.created_at) }
+            if (txt.startsWith('📹')) {
+              msg.isVideoLink = true
+              msg.videoRoomId = txt.split('#').pop()?.trim() || ''
+            }
             const next = [...cleaned, msg]
             localStorage.setItem('fh_chat_cache', JSON.stringify(next.slice(-30)))
             return next
@@ -223,11 +225,11 @@ export default function ChatPage() {
                 {m.user !== nick && <span className="text-[10px] text-[#8D949E] mb-0.5 ml-1">{m.user}</span>}
                 {m.voice_url ? (
                   <audio src={m.voice_url} controls className={`h-8 w-[180px] ${isMentioned ? 'ring-1 ring-[#3B82F6] rounded' : ''}`} preload="metadata" />
-                ) : m.isVideoLink ? (
+                ) : m.isVideoLink || (m.text || '').startsWith('📹') ? (
                   <div className={`px-3 py-2 rounded-xl text-sm bg-[#1A2129] text-[#E5E7EB] rounded-bl-sm`}>
                     <div className="flex items-center gap-2">
-                      <span>{m.text.replace(' #' + m.videoRoomId, '')}</span>
-                      <button onClick={() => joinVideoRoom(m.videoRoomId)} className="text-[10px] px-2 py-0.5 rounded bg-[#22C55E] text-white font-medium hover:opacity-80 transition-opacity">加入</button>
+                      <span>{(m.text || '').replace('📹 ', '')}</span>
+                      <button onClick={() => joinVideoRoom((m.videoRoomId || (m.text || '').split('#').pop()))} className="text-[10px] px-2 py-0.5 rounded bg-[#22C55E] text-white font-medium hover:opacity-80 transition-opacity">加入</button>
                     </div>
                   </div>
                 ) : (
