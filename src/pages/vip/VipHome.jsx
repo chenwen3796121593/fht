@@ -6,11 +6,11 @@ export default function VipHome({ phone, setPhone, reason, setReason, submitted,
   return (
     <>
       <div className="px-4 pt-5 pb-1 flex items-center gap-2">
-        <Crown size={18} className="text-[#F59E0B]"/><span className="text-sm font-bold text-[#F0F2F5]">VIP 专区</span>
+        <Crown size={18} className="text-[#3B82F6]"/><span className="text-sm font-bold text-[#F0F2F5]">VIP 专区</span>
       </div>
       <div className="px-4 pb-4">
         <div className="rounded-xl px-1 py-3.5">
-          <div className="flex items-center gap-2 mb-1.5"><Sparkles size={16} className="text-[#F59E0B]"/><span className="text-sm font-bold text-[#F59E0B]">预测大模型AI服务</span></div>
+          <div className="flex items-center gap-2 mb-1.5"><Sparkles size={16} className="text-[#3B82F6]"/><span className="text-sm font-bold text-[#3B82F6]">预测大模型AI服务</span></div>
           <div className="text-[11px] text-[#8D949E] leading-relaxed whitespace-pre-line">{aiDesc}</div>
         </div>
       </div>

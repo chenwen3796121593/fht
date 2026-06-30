@@ -45,17 +45,17 @@ export default function VipAdmin({
 
       {/* Strategy editor */}
       <div className="px-4 pt-4 pb-3">
-        <div className="bg-[#12161C] border border-[#F59E0B]/30 rounded-xl p-4 flex flex-col gap-3">
-          <div className="flex items-center gap-2"><Edit3 size={14} className="text-[#F59E0B]"/><span className="text-xs font-semibold text-[#F0F2F5]">今日策略</span></div>
+        <div className="bg-[#12161C] border border-[#3B82F6]/30 rounded-xl p-4 flex flex-col gap-3">
+          <div className="flex items-center gap-2"><Edit3 size={14} className="text-[#3B82F6]"/><span className="text-xs font-semibold text-[#F0F2F5]">今日策略</span></div>
           <textarea className="bg-[#1A2129] border border-[#242B33] rounded-md px-3 py-2 text-sm text-[#F0F2F5] outline-none placeholder:text-[#4D545C] resize-none h-32" placeholder="写下今日交易策略..." value={strategyDraft} onChange={e => setStrategyDraft(e.target.value)} />
-          <button onClick={onSave} disabled={savingStrat || !strategyDraft.trim()} className="py-2 rounded-md bg-[#F59E0B] text-[#0A0F14] text-sm font-bold disabled:opacity-40">{savingStrat ? '发布中...' : '发布策略'}</button>
+          <button onClick={onSave} disabled={savingStrat || !strategyDraft.trim()} className="py-2 rounded-md bg-[#3B82F6] text-white text-sm font-bold disabled:opacity-40">{savingStrat ? '发布中...' : '发布策略'}</button>
           {statusMsg && <div className={`text-xs font-medium text-center ${statusMsg.startsWith('✅') ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>{statusMsg}</div>}
         </div>
       </div>
 
       {/* Application management */}
       <div className="px-4 pb-2 flex items-center justify-between">
-        <div className="flex items-center gap-2"><Crown size={18} className="text-[#F59E0B]"/><span className="text-sm font-bold text-[#F0F2F5]">申请管理</span></div>
+        <div className="flex items-center gap-2"><Crown size={18} className="text-[#3B82F6]"/><span className="text-sm font-bold text-[#F0F2F5]">申请管理</span></div>
         <button onClick={handleLogout} className="text-xs text-[#4D545C] hover:text-[#EF4444]">退出</button>
       </div>
       <div className="px-4 pb-2 flex items-center gap-2">
@@ -71,7 +71,7 @@ export default function VipAdmin({
               {app.reason && <div className="text-[11px] text-[#6B7280] mt-0.5">{app.reason}</div>}
               <div className="text-[10px] text-[#4D545C] mt-1">
                 {new Date(app.created_at).toLocaleDateString('zh-CN')}
-                <span className={`ml-2 ${app.status === 'pending' ? 'text-[#F59E0B]' : app.status === 'approved' ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>
+                <span className={`ml-2 ${app.status === 'pending' ? 'text-[#3B82F6]' : app.status === 'approved' ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>
                   {app.status === 'pending' ? '待审核' : app.status === 'approved' ? '已通过' : '已拒绝'}
                 </span>
               </div>

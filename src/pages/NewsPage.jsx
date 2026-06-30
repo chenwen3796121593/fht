@@ -64,8 +64,6 @@ export default function NewsPage() {
             {(n.summary||n.intro) && <div className="text-[11px] text-[#8D949E] leading-relaxed line-clamp-2 mb-2">{n.summary||n.intro}</div>}
             <div className="flex items-center gap-2 text-[11px] text-[#6B7280]">
               <span>{fmtTime(n.pubDate||n.time)}</span>
-              {n.category && <><span>·</span><span>{n.category}</span></>}
-              {n.source && <><span>·</span><span>{n.source}</span></>}
             </div>
           </div>
         ))}

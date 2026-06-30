@@ -88,7 +88,7 @@ export default function MetalsPage() {
       {/* Content */}
       <div className="px-4 pt-4">
         <div className="flex items-center gap-2 mb-3">
-          <Banknote size={18} className="text-[#F59E0B]" />
+          <Banknote size={18} className="text-[#3B82F6]" />
           <span className="text-sm font-bold text-[#F0F2F5]">贵金属行情</span>
         </div>
 
@@ -99,7 +99,7 @@ export default function MetalsPage() {
           {(data || [{},{},{},{}]).map((d, i) => (
             <div key={d.name || i} className={`grid grid-cols-2 gap-2 px-3 py-2.5 items-center ${i % 2 ? 'bg-[#0D1117]' : 'bg-[#12161C]'}`}>
               <span className="text-xs font-medium text-[#F0F2F5]">{d.name || '--'}</span>
-              <span className="text-xs font-semibold text-[#F59E0B] text-right tabular-nums">{d.price || '--'}</span>
+              <span className="text-xs font-semibold text-[#3B82F6] text-right tabular-nums">{d.price || '--'}</span>
             </div>
           ))}
         </div>

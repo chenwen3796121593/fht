@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Flame, House, TrendingUp, BarChart3, MessageCircle, Bell, Newspaper, Crown, Banknote } from 'lucide-react'
+import { Flame, House, TrendingUp, BarChart3, MessageCircle, Bell, Newspaper, Crown, Banknote, Zap } from 'lucide-react'
 import { useApp } from '../context/AppContext.jsx'
 
 const ICON_SZ = 17
 const PAGES = ['home', 'dashboard', 'indicators', 'news', 'chat', 'alerts', 'metals', 'vip']
-const ICONS = { home: House, dashboard: TrendingUp, indicators: BarChart3, news: Newspaper, chat: MessageCircle, alerts: Bell, metals: Banknote, vip: Crown }
+const ICONS = { home: House, dashboard: TrendingUp, indicators: BarChart3, news: Newspaper, chat: MessageCircle, alerts: Zap, metals: Banknote, vip: Crown }
 
 function useClock() {
   const [time, setTime] = useState(() => new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }))

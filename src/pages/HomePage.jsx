@@ -27,24 +27,14 @@ function SectorFlow() {
     let cancelled = false
     async function fetchData() {
       try {
-        const res = await fetch('/api/flow?t=' + Date.now())
+        const res = await fetch('/api/flow')
         const json = await res.json()
-        if (!cancelled) {
-          if (json.data && json.outData) { setAllData(json); return }
-          if (json.data?.diff) {
-            const outRes = await fetch('/api/flow?type=out')
-            const outJson = await outRes.json()
-            const mapData = (arr) => (arr?.data?.diff || []).map(i => ({
-              name: i.f14 || '?', netFlow: parseFloat(i.f62) || 0,
-              change: parseFloat(i.f3) || 0, netRatio: parseFloat(i.f184) || 0,
-            }))
-            if (!cancelled) setAllData({ data: mapData(json), outData: mapData(outJson) })
-          }
-        }
+        if (!cancelled && json.data && json.outData) setAllData(json)
       } catch(e) { if (!cancelled) setAllData(null) }
     }
     fetchData()
-    return () => { cancelled = true }
+    const timer = setInterval(fetchData, 30000)
+    return () => { cancelled = true; clearInterval(timer) }
   }, [])
 
   const data = tab === 'in' ? allData?.data : allData?.outData
@@ -95,11 +85,26 @@ function SectorFlow() {
 export default function HomePage() {
   const { quotes, loading, breadth } = useApp()
   const isInitialLoad = loading && Object.keys(quotes).length === 0
+  const [yesterday, setYesterday] = useState(null)
 
   const sh = quotes['sh000001'], sz = quotes['sz399001']
   const dataReady = !!(sh && sz)
-  const totalTurnover = (sh?.turnover && sz?.turnover) ? ((sh.turnover + sz.turnover) / 1e8).toFixed(0) + '亿' : '--'
+  const todayAmt = (sh?.turnover && sz?.turnover) ? (sh.turnover + sz.turnover) : 0
+  const totalTurnover = todayAmt ? (todayAmt / 1e8).toFixed(0) + '亿' : '--'
   const avgChg = dataReady ? ((sh.change || 0) + (sz.change || 0)) / 2 : 0
+
+  // 昨日成交额对比（仅收盘后显示：工作日 15:00 后）
+  const isMarketClosed = (() => {
+    const now = new Date()
+    if (now.getDay() === 0 || now.getDay() === 6) return false
+    return now.getHours() >= 15
+  })()
+  const diffAmt = (isMarketClosed && yesterday?.total && todayAmt) ? todayAmt - yesterday.total : 0
+  const diffStr = diffAmt ? ((diffAmt > 0 ? '+' : '') + (diffAmt / 1e8).toFixed(0) + '亿') : ''
+
+  useEffect(() => {
+    fetch('/api/yesterday-turnover').then(r => r.json()).then(d => d.total && setYesterday(d)).catch(() => {})
+  }, [])
 
   return (
     <div className="bg-[#0A0F14] h-full overflow-y-auto">
@@ -111,6 +116,7 @@ export default function HomePage() {
             <div className="bg-[#12161C] border border-[#242B33] rounded-xl p-3">
               <div className="text-[10px] text-[#6B7280] mb-1">两市成交额</div>
               <div className="text-base font-bold text-[#F0F2F5]">{totalTurnover}</div>
+              {diffStr && <div className={`text-[10px] font-medium mt-0.5 ${diffAmt > 0 ? 'text-[#EF4444]' : 'text-[#22C55E]'}`}>较昨日 {diffStr}</div>}
             </div>
             <div className="bg-[#12161C] border border-[#242B33] rounded-xl p-3">
               <div className="text-[10px] text-[#6B7280] mb-1">市场温度</div>
