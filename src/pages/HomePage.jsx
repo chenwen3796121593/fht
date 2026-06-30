@@ -93,13 +93,16 @@ export default function HomePage() {
   const totalTurnover = todayAmt ? (todayAmt / 1e8).toFixed(0) + '亿' : '--'
   const avgChg = dataReady ? ((sh.change || 0) + (sz.change || 0)) / 2 : 0
 
-  // 昨日成交额对比（仅收盘后显示：工作日 15:00 后）
-  const isMarketClosed = (() => {
+  // 昨日成交额对比（盘中不显示，收盘后~次日开盘前显示）
+  const showDiff = (() => {
     const now = new Date()
-    if (now.getDay() === 0 || now.getDay() === 6) return false
-    return now.getHours() >= 15
+    if (now.getDay() === 0 || now.getDay() === 6) return true // 周末全天显示
+    const h = now.getHours(), m = now.getMinutes()
+    const inMorning = (h === 9 && m >= 30) || h === 10 || (h === 11 && m < 30)
+    const inAfternoon = h === 13 || h === 14
+    return !(inMorning || inAfternoon) // 盘中不显示，其余时间显示
   })()
-  const diffAmt = (isMarketClosed && yesterday?.total && todayAmt) ? todayAmt - yesterday.total : 0
+  const diffAmt = (showDiff && yesterday?.total && todayAmt) ? todayAmt - yesterday.total : 0
   const diffStr = diffAmt ? ((diffAmt > 0 ? '+' : '') + (diffAmt / 1e8).toFixed(0) + '亿') : ''
 
   useEffect(() => {

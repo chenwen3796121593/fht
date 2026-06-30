@@ -9,11 +9,14 @@ export async function onRequest() {
     const lines = text.split('\n').filter(l => l.trim())
     const result = codes.map((code, i) => {
       const line = lines.find(l => l.includes(code))
-      if (!line) return { name: names[i], price: '--' }
+      if (!line) return { name: names[i], price: '--', change: 0 }
       const parts = line.replace(/^var hq_str_\w+="?/, '').replace(/";?\s*$/, '').split(',')
+      // 现价: [8]卖价 [3]昨收价
       let price = parseFloat(parts[8]) || parseFloat(parts[6]) || 0
-      if (code === 'nf_AG0') price = price / 1000
-      return { name: names[i], price: price.toFixed(2) }
+      let prevClose = parseFloat(parts[3]) || 0
+      if (code === 'nf_AG0') { price = price / 1000; prevClose = prevClose / 1000 }
+      const change = prevClose ? ((price - prevClose) / prevClose) * 100 : 0
+      return { name: names[i], price: price.toFixed(2), prevClose, change }
     })
     return new Response(JSON.stringify(result), {
       headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=5' },

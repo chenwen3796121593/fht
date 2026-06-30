@@ -96,12 +96,15 @@ export default function MetalsPage() {
           <div className="grid grid-cols-2 gap-2 px-3 py-2 text-[10px] text-[#4D545C] border-b border-[#242B33] bg-[#0D1117]">
             <span>品种</span><span className="text-right">销售价(元/克)</span>
           </div>
-          {(data || [{},{},{},{}]).map((d, i) => (
+          {(data || [{},{},{},{}]).map((d, i) => {
+            const chg = d.change || 0
+            return (
             <div key={d.name || i} className={`grid grid-cols-2 gap-2 px-3 py-2.5 items-center ${i % 2 ? 'bg-[#0D1117]' : 'bg-[#12161C]'}`}>
               <span className="text-xs font-medium text-[#F0F2F5]">{d.name || '--'}</span>
-              <span className="text-xs font-semibold text-[#3B82F6] text-right tabular-nums">{d.price || '--'}</span>
+              <span className="text-xs font-semibold text-right tabular-nums" style={{ color: chg > 0 ? '#EF4444' : chg < 0 ? '#22C55E' : '#F0F2F5' }}>{d.price || '--'}</span>
             </div>
-          ))}
+            )
+          })}
         </div>
 
         <div className="flex items-center gap-2 mb-2 ml-1">
