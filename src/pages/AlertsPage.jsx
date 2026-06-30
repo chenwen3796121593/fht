@@ -109,12 +109,11 @@ function AiPanel() {
     if (!pwd.trim()) return
     const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pwd))
       .then(buf => Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join(''))
-    if (hash === '28d01ede2c8b06a75ac13e9df15e44a61e302177c532b27ef3d50e81b643a6a3') {
-      setShowPwdInput(false)
-      setPwdErr('')
-    } else {
-      setPwdErr('密码错误，请重试')
-    }
+    try {
+      const res = await fetch('/api/verify-pwd', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hash }) })
+      if (res.ok) { setShowPwdInput(false); setPwdErr('') }
+      else setPwdErr('密码错误，请重试')
+    } catch { setPwdErr('验证失败，请重试') }
   }
 
   const handleAnalyze = async () => {
@@ -274,17 +273,18 @@ function PredictPanel() {
   const [error, setError] = useState('')
   const [pwdErr, setPwdErr] = useState('')
   const [activeModel, setActiveModel] = useState('commodity')
+  const [iframeUrl, setIframeUrl] = useState('')
+  const [hfSite, setHfSite] = useState('')
 
   const savePwd = async () => {
     if (!pwd.trim()) return
     const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pwd))
       .then(buf => Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join(''))
-    if (hash === '28d01ede2c8b06a75ac13e9df15e44a61e302177c532b27ef3d50e81b643a6a3') {
-      setShowPwdInput(false)
-      setPwdErr('')
-    } else {
-      setPwdErr('密码错误，请重试')
-    }
+    try {
+      const res = await fetch('/api/verify-pwd', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hash }) })
+      if (res.ok) { setShowPwdInput(false); setPwdErr('') }
+      else setPwdErr('密码错误，请重试')
+    } catch { setPwdErr('验证失败，请重试') }
   }
 
   const fetchAll = async () => {
@@ -376,19 +376,27 @@ function PredictPanel() {
       <div className="flex flex-col gap-1 pt-3">
         <div className="flex gap-1 flex-wrap">
           {STOCK_MODELS.map(m => (
-            <button key={m.key} onClick={() => setActiveModel(m.key)}
-              className={`px-3 py-1.5 rounded-md text-[10px] font-medium transition-colors ${activeModel === m.key ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>
+            <button key={m.key} onClick={() => { setActiveModel(m.key); setHfSite('') }}
+              className={`px-3 py-1.5 rounded-md text-[10px] font-medium transition-colors ${activeModel === m.key && !hfSite ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>
               {m.name}
             </button>
           ))}
         </div>
         <div className="flex gap-1 flex-wrap items-center">
           {COMMODITY_MODELS.map(m => (
-            <button key={m.key} onClick={() => setActiveModel(m.key)}
-              className={`px-3 py-1.5 rounded-md text-[10px] font-medium transition-colors ${activeModel === m.key ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>
+            <button key={m.key} onClick={() => { setActiveModel(m.key); setHfSite('') }}
+              className={`px-3 py-1.5 rounded-md text-[10px] font-medium transition-colors ${activeModel === m.key && !hfSite ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>
               {m.name}
             </button>
           ))}
+          <button onClick={async () => { try { const r = await fetch('/api/hf-proxy?site=timesfm'); const j = await r.json(); setIframeUrl(j.url); setHfSite('timesfm') } catch(e) {} }}
+            className={`px-3 py-1.5 rounded-md text-[10px] font-medium transition-colors ${hfSite === 'timesfm' ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>
+            TimesFM+Moirai
+          </button>
+          <button onClick={async () => { try { const r = await fetch('/api/hf-proxy?site=chronos'); const j = await r.json(); setIframeUrl(j.url); setHfSite('chronos') } catch(e) {} }}
+            className={`px-3 py-1.5 rounded-md text-[10px] font-medium transition-colors ${hfSite === 'chronos' ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>
+            Chronos+Kronos
+          </button>
           <button onClick={fetchAll} disabled={loading} className="px-2 py-1 rounded text-[10px] font-medium bg-[#3B82F6] text-white flex items-center gap-1 active:scale-95 transition-all disabled:opacity-40">
             <RefreshCw size={11} className={loading ? 'animate-spin' : ''} /> 刷新
           </button>
@@ -396,10 +404,19 @@ function PredictPanel() {
         </div>
       </div>
 
-      {/* 选中模型的表格 */}
+      {/* 选中模型的表格 / iframe */}
       <div className="flex-1 overflow-y-auto" style={{ paddingBottom: '0.5rem' }}>
         {error && <div className="bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-lg p-3 text-sm text-[#EF4444] mb-2">{error}</div>}
-        {ALL_MODELS.filter(m => m.key === activeModel).map(m => {
+        {iframeUrl ? (
+          <div className="flex flex-col h-full mt-2">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] text-[#6B7280]">外部模型页面</span>
+              <button onClick={() => { setIframeUrl(''); setHfSite('') }} className="px-2 py-0.5 rounded text-[10px] bg-[#1A2129] text-[#8D949E] hover:text-[#F0F2F5]">关闭</button>
+            </div>
+            <iframe src={iframeUrl} className="flex-1 w-full border-0 rounded-lg" style={{ height: 'calc(100vh - 260px)' }} title="模型页面" />
+          </div>
+        ) :
+        ALL_MODELS.filter(m => m.key === activeModel).map(m => {
           const d = data[m.key]
           if (!d) return <div key={m.key} className="text-center text-[#4D545C] text-sm py-8">{pwd ? '加载中...' : '请先输入 VIP 密码'}</div>
           const periods = m.periods
