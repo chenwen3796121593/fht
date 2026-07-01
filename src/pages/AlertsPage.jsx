@@ -282,7 +282,7 @@ function PredictPanel() {
       .then(buf => Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join(''))
     try {
       const res = await fetch('/api/verify-pwd', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hash }) })
-      if (res.ok) { setShowPwdInput(false); setPwdErr('') }
+      if (res.ok) { setShowPwdInput(false); setPwdErr(''); fetchAll() }
       else setPwdErr('密码错误，请重试')
     } catch { setPwdErr('验证失败，请重试') }
   }
@@ -304,7 +304,6 @@ function PredictPanel() {
     setLoading(false)
   }
 
-  useEffect(() => { if (pwd) fetchAll() }, [])
 
   const toggleExpand = (k) => setExpanded(prev => ({ ...prev, [k]: !prev[k] }))
 

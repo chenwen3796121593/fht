@@ -17,7 +17,7 @@ export async function onRequest({ request, env }) {
     const res = await fetch(`${GH_BASE}/${file}`)
     const data = await res.text()
     return new Response(data, {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=300' },
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=3600' },
     })
   } catch (e) {
     return new Response(JSON.stringify({ error: e.message }), {
