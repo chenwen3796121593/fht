@@ -28,7 +28,7 @@ export const DEFAULT_SYMBOLS = [
 ]
 
 // MarketBar 展示的品种（不含豆粕）
-export const MARKETBAR_SYMBOLS = DEFAULT_SYMBOLS.filter(s => s.symbol !== 'nf_M0')
+export const MARKETBAR_SYMBOLS = DEFAULT_SYMBOLS.filter(s => !['nf_M0','hf_XPT','hf_XPD'].includes(s.symbol))
 
 // 默认自选品种
 export const DEFAULT_WATCHLIST = [
