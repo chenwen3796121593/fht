@@ -1,13 +1,18 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import TopBar from '../components/TopBar'
+import { useApp } from '../context/AppContext.jsx'
 import { Banknote, TrendingUp } from 'lucide-react'
-import { METALS_SB_URL, METALS_SB_KEY } from '../lib/constants.js'
+
+const INTL_MAP = {
+  '黄金': { code: 'hf_XAU', name: '伦敦黄金' },
+  '白银': { code: 'hf_XAG', name: '伦敦白银' },
+  '铂金': { code: 'hf_XPT', name: '美铂金' },
+  '钯金': { code: 'hf_XPD', name: '美钯金' },
+}
 
 export default function MetalsPage() {
+  const { prices } = useApp()
   const [data, setData] = useState(null)
-  const [rankings, setRankings] = useState([])
-  const [rowCount, setRowCount] = useState(() => { try { return parseInt(localStorage.getItem('fh_forecast_rows')) || 6 } catch { return 6 } })
-  const sbRef = useRef(null)
 
   // ---- Sina metals prices ----
   useEffect(() => {
@@ -26,66 +31,39 @@ export default function MetalsPage() {
       } catch(e) {}
     }
     fetchMetals()
-    const t = setInterval(fetchMetals, 30000) // 30s for futures data
+    const t = setInterval(fetchMetals, 3000)
     return () => { cancelled = true; clearInterval(t) }
   }, [])
 
-  // ---- Supabase commodity_rankings with real-time ----
+  // ---- Moirai-2 商品预测（GitHub每日更新） ----
+  const [forecast, setForecast] = useState(null)
+
   useEffect(() => {
     let cancelled = false
-    ;(async () => {
-      const { createClient } = await import('@supabase/supabase-js')
-      if (cancelled) return
-      const sb = createClient(METALS_SB_URL, METALS_SB_KEY)
-      sbRef.current = sb
-
-      const { data: rows } = await sb.from('commodity_rankings').select('*').order('id')
-      if (!cancelled && rows) {
-        setRankings(rows)
-        const n = [...new Set(rows.map(r => r.name))].length
-        setRowCount(n)
-        localStorage.setItem('fh_forecast_rows', n)
-      }
-
-      sb.channel('rankings-changes')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'commodity_rankings' }, () => {
-          sb.from('commodity_rankings').select('*').order('id').then(({ data: fresh }) => {
-            if (fresh) setRankings(fresh)
-          })
-        }).subscribe()
-    })()
-    return () => { cancelled = true; try { sbRef.current?.removeAllChannels() } catch {} }
+    const fetchForecast = () => {
+      fetch('/api/predict-data?file=moirai_ranking.json&t=' + Date.now())
+        .then(r => r.json()).then(d => { if (!cancelled) setForecast(d) })
+        .catch(() => {})
+    }
+    fetchForecast()
+    // 每天早上 6:00 自动刷新
+    const now = new Date(); const next = new Date(now); next.setHours(6, 0, 0, 0)
+    if (next <= now) next.setDate(next.getDate() + 1)
+    const delay = next - now
+    let t2
+    const t1 = setTimeout(() => { fetchForecast(); t2 = setInterval(fetchForecast, 86400000) }, delay)
+    return () => { cancelled = true; clearTimeout(t1); clearInterval(t2) }
   }, [])
 
-  const names = [...new Set(rankings.map(r => r.name))]
-  const getTarget = (name, horizon) => {
-    const r = rankings.find(x => x.name === name && x.horizon === horizon)
-    if (!r) return { val: '--', up: false }
-    return { val: (r.target > r.current ? '+' : '') + r.target.toFixed(1), up: r.target > r.current }
-  }
-
-  const ForecastRow = ({ name, i }) => {
-    const r = rankings.find(x => x.name === name)
-    return (
-      <div className={`grid grid-cols-5 gap-1 px-2 py-2.5 items-center ${i % 2 ? 'bg-[#0D1117]' : 'bg-[#12161C]'}`}>
-        <span className="text-[10px] font-medium text-[#F0F2F5] truncate">{name}</span>
-        <span className="text-[10px] text-[#F0F2F5] text-right tabular-nums">{r ? r.current.toFixed(1) : '--'}</span>
-        {['7d','14d','30d'].map(h => { const t = getTarget(name, h); return <span key={h} className="text-[10px] text-right tabular-nums" style={{ color: t.up ? '#EF4444' : '#22C55E' }}>{t.val}</span> })}
-      </div>
-    )
-  }
-
-  const PlaceholderRow = ({ i }) => (
-    <div className={`grid grid-cols-5 gap-1 px-2 py-2.5 items-center ${i % 2 ? 'bg-[#0D1117]' : 'bg-[#12161C]'}`}>
-      {[0,1,2,3,4].map(j => <span key={j} className="text-[10px] text-[#4D545C] text-right">--</span>)}
-    </div>
-  )
+  const fRankings = forecast?.rankings || {}
+  const NAME_ORDER = ['现货黄金','现货白银','国际原油','COMEX铜','LME铝','豆粕']
+  const fNames = NAME_ORDER.filter(n => Object.values(fRankings).flat().some(i => i.name === n))
+  const getFItem = (name, period) => (fRankings[period] || []).find(i => i.name === name)
 
   return (
     <div className="bg-[#0A0F14] h-full flex flex-col">
       <TopBar active="metals" />
 
-      {/* Content */}
       <div className="px-4 pt-4">
         <div className="flex items-center gap-2 mb-3">
           <Banknote size={18} className="text-[#3B82F6]" />
@@ -93,43 +71,86 @@ export default function MetalsPage() {
         </div>
 
         <div className="bg-[#12161C] border border-[#242B33] rounded-xl overflow-hidden mb-6">
-          <div className="grid grid-cols-2 gap-2 px-3 py-2 text-[10px] text-[#4D545C] border-b border-[#242B33] bg-[#0D1117]">
-            <span>品种</span><span className="text-right">销售价(元/克)</span>
-          </div>
-          {(data || [{},{},{},{}]).map((d, i) => {
-            const chg = d.change || 0
-            return (
-            <div key={d.name || i} className={`grid grid-cols-2 gap-2 px-3 py-2.5 items-center ${i % 2 ? 'bg-[#0D1117]' : 'bg-[#12161C]'}`}>
-              <span className="text-xs font-medium text-[#F0F2F5]">{d.name || '--'}</span>
-              <span className="text-xs font-semibold text-right tabular-nums" style={{ color: chg > 0 ? '#EF4444' : chg < 0 ? '#22C55E' : '#F0F2F5' }}>{d.price || '--'}</span>
-            </div>
-            )
-          })}
+          <table className="w-full text-[10px] table-fixed">
+            <thead>
+              <tr className="text-[#6B7280] border-b border-[#242B33] bg-[#0D1117]">
+                <th className="text-left px-2 py-1.5 font-normal w-1/4">品种</th>
+                <th className="text-left px-2 py-1.5 font-normal leading-tight w-1/4">销售价<br/>(元/克)</th>
+                <th className="text-left px-2 py-1.5 font-normal w-1/4">品种</th>
+                <th className="text-left px-2 py-1.5 font-normal leading-tight w-1/4">价格<br/>(美元/盎司)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(data || [{},{},{},{}]).map((d, i) => {
+                const chg = d.change || 0
+                const intl = INTL_MAP[d.name]
+                const intlPrice = intl?.code ? prices[intl.code]?.formattedPrice : '--'
+                const intlChg = intl?.code ? prices[intl.code]?.change || 0 : 0
+                return (
+                <tr key={d.name || i} className={`border-b border-[#1A2129] ${i % 2 ? 'bg-[#0D1117]' : 'bg-[#12161C]'}`}>
+                  <td className="px-2 py-2 text-[#F0F2F5] font-medium">{d.name || '--'}</td>
+                  <td className="px-2 py-2 tabular-nums font-semibold" style={{ color: chg > 0 ? '#EF4444' : chg < 0 ? '#22C55E' : '#F0F2F5' }}>{d.price || '--'}</td>
+                  <td className="px-2 py-2 text-[#8D949E]">{intl?.name || '--'}</td>
+                  <td className="px-2 py-2 tabular-nums font-semibold" style={{ color: intlPrice !== '--' ? (intlChg > 0 ? '#EF4444' : intlChg < 0 ? '#22C55E' : '#F0F2F5') : '#8D949E' }}>{intlPrice}</td>
+                </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
 
         <div className="flex items-center gap-2 mb-2 ml-1">
           <TrendingUp size={18} className="text-[#3B82F6]" />
           <span className="text-sm font-bold text-[#F0F2F5]">商品预测</span>
-          {rankings[0]?.updated && (
+          {forecast?.updated && (
             <span className="text-[9px] text-[#4D545C]">
-              {new Date(rankings[0].updated).toLocaleString('zh-CN', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' })}
+              {new Date(forecast.updated).toLocaleString('zh-CN', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' })}
             </span>
           )}
+          <button onClick={async () => {
+            try {
+              const r = await fetch('/api/predict-data?file=moirai_ranking.json&t=' + Date.now(), { cache: 'no-cache' })
+              const d = await r.json()
+              setForecast(d)
+            } catch(e) {}
+          }} className="text-[10px] text-[#3B82F6] hover:underline active:opacity-60">刷新</button>
         </div>
 
         <div className="bg-[#12161C] border border-[#242B33] rounded-xl overflow-hidden mb-1">
-          <div className="grid grid-cols-5 gap-1 px-2 py-2 text-[9px] text-[#4D545C] border-b border-[#242B33] bg-[#0D1117]">
-            <span>品种</span><span className="text-right">现价</span><span className="text-right">7天</span><span className="text-right">14天</span><span className="text-right">30天</span>
+          <div className="overflow-x-auto">
+            <table className="w-full text-[10px]">
+              <thead>
+                <tr className="text-[#6B7280] border-b border-[#242B33]">
+                  <th className="text-left px-1.5 py-1.5 font-normal bg-[#0D1117] sticky left-0 z-10">品种</th>
+                  {fNames.map(name => (
+                    <th key={name} className="px-1 py-1.5 font-normal whitespace-nowrap">{name}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {[{k:'7d',l:'7天'},{k:'14d',l:'14天'},{k:'30d',l:'30天'},{k:'60d',l:'60天'},{k:'90d',l:'90天'}].map(({k, l}) => (
+                  <tr key={k} className="border-b border-[#1A2129]">
+                    <td className="px-1.5 py-2 text-[#6B7280] bg-[#0D1117] sticky left-0 whitespace-nowrap">{l}</td>
+                    {fNames.map(name => {
+                      const item = getFItem(name, k)
+                      const val = item ? item.target : null
+                      const up = item ? item.target > item.current : false
+                      return (
+                        <td key={name} className="text-center px-1 py-2 tabular-nums text-[10px]"
+                          style={{ color: val ? (up ? '#EF4444' : '#22C55E') : '#8D949E' }}>
+                          {val ? (up ? '+' : '') + val.toFixed(1) : '--'}
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          {names.length > 0
-            ? names.map((name, i) => <ForecastRow key={name} name={name} i={i} />)
-            : Array.from({length: rowCount}).map((_, i) => <PlaceholderRow key={i} i={i} />)
-          }
         </div>
         <div className="text-[9px] text-[#4D545C] text-center mb-6">免责声明：AI预测基于历史统计规律，不构成投资建议。</div>
       </div>
 
-      {/* Fixed footer */}
       <div className="flex-shrink-0 px-4 flex items-center justify-center gap-8 pb-4">
         <div className="text-[10px] text-[#6B7280] leading-relaxed text-center flex flex-col justify-center">
           <div>扫码添加微信</div>

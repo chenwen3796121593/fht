@@ -23,6 +23,8 @@ export const DEFAULT_SYMBOLS = [
   { symbol: 'hf_HG', name: 'COMEX铜', type: 'commodity' },
   { symbol: 'hf_AHD', name: 'LME铝', type: 'commodity' },
   { symbol: 'nf_M0', name: '豆粕', type: 'commodity' },
+  { symbol: 'hf_XPT', name: '伦敦铂', type: 'commodity' },
+  { symbol: 'hf_XPD', name: '伦敦钯', type: 'commodity' },
 ]
 
 // MarketBar 展示的品种（不含豆粕）
