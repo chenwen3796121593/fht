@@ -1,12 +1,10 @@
 const MACRO_KW = [
   '央行', '美联储', '人民银行', '证监会', '银保监', '财政部',
-  '国家统计局', '商务部', '发改委', '国务院', '中央',
-  '上交所', '深交所', '港交所', '纽交所', '纳斯达克',
-  '欧洲央行', '日本央行', 'IMF', '世界银行', 'OPEC',
-  '利率决议', '货币政策', 'GDP', 'CPI', 'PMI', 'PPI',
-  '非农', '通胀', '降息', '加息', '存款准备金',
-  'A股', '上证', '深证', '创业板', '汇率', '人民币',
-  '贸易', '国债', '社融', 'M1', 'M2', 'LPR',
+  '国家统计局', '商务部', '发改委', '国务院',
+  '欧洲央行', '日本央行', 'IMF', '世界银行',
+  '利率决议', '货币政策', '存款准备金',
+  '非农', '降息', '加息', 'LPR',
+  '汇率', '国债', '社融',
 ]
 
 export async function onRequest() {
@@ -29,7 +27,7 @@ export async function onRequest() {
         category: '宏观',
       }))
     return new Response(JSON.stringify(items), {
-      headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=300' },
+      headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=86400' },
     })
   } catch (e) {
     return new Response('[]', { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } })

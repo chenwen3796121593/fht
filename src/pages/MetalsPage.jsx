@@ -118,25 +118,27 @@ export default function MetalsPage() {
 
         <div className="bg-[#12161C] border border-[#242B33] rounded-xl overflow-hidden mb-1">
           <div className="overflow-x-auto">
-            <table className="w-full text-[10px]">
+            <table className="w-full text-[10px] table-fixed">
               <thead>
                 <tr className="text-[#6B7280] border-b border-[#242B33]">
                   <th className="text-left px-1.5 py-1.5 font-normal bg-[#0D1117] sticky left-0 z-10">品种</th>
-                  {fNames.map(name => (
-                    <th key={name} className="px-1 py-1.5 font-normal whitespace-nowrap">{name}</th>
-                  ))}
+                  <th className="text-center px-1 py-1.5 font-normal">7天</th>
+                  <th className="text-center px-1 py-1.5 font-normal">14天</th>
+                  <th className="text-center px-1 py-1.5 font-normal">30天</th>
+                  <th className="text-center px-1 py-1.5 font-normal">60天</th>
+                  <th className="text-center px-1 py-1.5 font-normal">90天</th>
                 </tr>
               </thead>
               <tbody>
-                {[{k:'7d',l:'7天'},{k:'14d',l:'14天'},{k:'30d',l:'30天'},{k:'60d',l:'60天'},{k:'90d',l:'90天'}].map(({k, l}) => (
-                  <tr key={k} className="border-b border-[#1A2129]">
-                    <td className="px-1.5 py-2 text-[#6B7280] bg-[#0D1117] sticky left-0 whitespace-nowrap">{l}</td>
-                    {fNames.map(name => {
-                      const item = getFItem(name, k)
+                {fNames.map(name => (
+                  <tr key={name} className="border-b border-[#1A2129]">
+                    <td className="px-1.5 py-2 text-[#F0F2F5] bg-[#0D1117] sticky left-0 whitespace-nowrap font-medium">{name}</td>
+                    {['7d','14d','30d','60d','90d'].map(p => {
+                      const item = getFItem(name, p)
                       const val = item ? item.target : null
                       const up = item ? item.target > item.current : false
                       return (
-                        <td key={name} className="text-center px-1 py-2 tabular-nums text-[10px]"
+                        <td key={p} className="text-center px-1 py-2 tabular-nums"
                           style={{ color: val ? (up ? '#EF4444' : '#22C55E') : '#8D949E' }}>
                           {val ? (up ? '+' : '') + val.toFixed(1) : '--'}
                         </td>

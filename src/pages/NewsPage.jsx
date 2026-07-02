@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import TopBar from '../components/TopBar'
 import { NEWS_INTERVAL } from '../lib/constants.js'
 
-const tabs = ['全部', '股票', '商品', '宏观']
+const tabs = ['股票', '商品', '宏观', '大佬观点']
+
 
 function fmtTime(d) {
   if (!d) return ''
@@ -13,9 +14,16 @@ function fmtTime(d) {
 }
 
 export default function NewsPage() {
-  const [tab, setTab] = useState('全部')
+  const [tab, setTab] = useState('股票')
   const [rssNews, setRssNews] = useState({ stock: [], commodity: [], macro: [] })
   const [loading, setLoading] = useState(true)
+  const [dalaoData, setDalaoData] = useState(null)
+  const [dalaoTab, setDalaoTab] = useState('domestic')
+  const [translations, setTranslations] = useState({})
+
+  useEffect(() => {
+    fetch('/api/dalao-news?v=new').then(r => r.json()).then(d => setDalaoData(d)).catch(() => {})
+  }, [])
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
@@ -34,6 +42,8 @@ export default function NewsPage() {
     setLoading(false)
   }, [])
 
+
+
   useEffect(() => {
     fetchAll()
     const t = setInterval(async () => {
@@ -44,7 +54,7 @@ export default function NewsPage() {
 
   const sorted = (arr) => [...arr].sort((a,b) => new Date(b.pubDate||b.time) - new Date(a.pubDate||a.time))
   const all = sorted([...rssNews.stock, ...rssNews.commodity, ...rssNews.macro])
-  const filtered = tab === '全部' ? all : tab === '股票' ? rssNews.stock : tab === '商品' ? rssNews.commodity : rssNews.macro
+  const filtered = tab === '股票' ? rssNews.stock : tab === '商品' ? rssNews.commodity : tab === '宏观' ? rssNews.macro : all
 
   return (
     <div className="overflow-y-auto bg-[#0A0F14] h-full">
@@ -56,18 +66,51 @@ export default function NewsPage() {
           ))}
         </div>
       </div>
-      <div className="px-4 flex flex-col gap-1.5 pb-8">
-        {loading && filtered.length===0 && <div className="text-center text-[#4D545C] text-sm py-12">加载中...</div>}
-        {filtered.map((n, i) => (
-          <div key={i} className="block bg-[#12161C] rounded-lg p-3.5">
-            <div className="text-sm font-semibold text-[#F0F2F5] leading-snug mb-1.5">{n.title}</div>
-            {(n.summary||n.intro) && <div className="text-[11px] text-[#8D949E] leading-relaxed line-clamp-2 mb-2">{n.summary||n.intro}</div>}
-            <div className="flex items-center gap-2 text-[11px] text-[#6B7280]">
-              <span>{fmtTime(n.pubDate||n.time)}</span>
-            </div>
+
+      {tab === '大佬观点' ? (
+        <div className="px-4 flex flex-col gap-3 pb-8">
+          <div className="flex gap-1.5 pt-1 pb-2 sticky top-[82px] bg-[#0A0F14] z-10">
+            <button onClick={() => setDalaoTab('intl')} className={`px-3 py-1.5 rounded-md text-xs font-medium ${dalaoTab==='intl' ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>国际大佬</button>
+            <button onClick={() => setDalaoTab('domestic')} className={`px-3 py-1.5 rounded-md text-xs font-medium ${dalaoTab==='domestic' ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>券商首席</button>
           </div>
-        ))}
-      </div>
+          <div className="flex flex-col gap-1">
+            {(dalaoTab==='intl' ? dalaoData?.intl : dalaoData?.domestic)?.length > 0
+              ? (dalaoTab==='intl' ? dalaoData.intl : dalaoData.domestic).map((n, i) => (
+                <div key={i} className="bg-[#12161C] rounded-lg p-3.5">
+                  <div className="text-sm text-[#D1D5DB] leading-snug">{n.title}</div>
+                  {translations[i] && <div className="text-sm text-[#22C55E] leading-snug mt-1">{translations[i]}</div>}
+                  <div className="flex items-center gap-2 text-[11px] text-[#6B7280] mt-1">
+                    <span>{n.pubDate ? new Date(n.pubDate).toLocaleDateString('zh-CN', {month:'short',day:'numeric'}) : ''}</span>
+                    {dalaoTab === 'intl' && !translations[i] && (
+                      <button onClick={async () => {
+                        try {
+                          const r = await fetch('/api/translate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: n.title }) })
+                          const j = await r.json()
+                          if (j.result) setTranslations(prev => ({ ...prev, [i]: j.result }))
+                        } catch(e) {}
+                      }} className="text-[#3B82F6] hover:underline">翻译</button>
+                    )}
+                  </div>
+                </div>
+              ))
+              : <div className="text-center text-[#4D545C] text-sm py-8">加载中...</div>
+            }
+          </div>
+        </div>
+      ) : (
+        <div className="px-4 flex flex-col gap-1.5 pb-8">
+          {loading && filtered.length===0 && <div className="text-center text-[#4D545C] text-sm py-12">加载中...</div>}
+          {filtered.map((n, i) => (
+            <div key={i} className="block bg-[#12161C] rounded-lg p-3.5">
+              <div className="text-sm font-semibold text-[#F0F2F5] leading-snug mb-1.5">{n.title}</div>
+              {(n.summary||n.intro) && <div className="text-[11px] text-[#8D949E] leading-relaxed line-clamp-2 mb-2">{n.summary||n.intro}</div>}
+              <div className="flex items-center gap-2 text-[11px] text-[#6B7280]">
+                <span>{fmtTime(n.pubDate||n.time)}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
