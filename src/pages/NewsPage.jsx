@@ -78,15 +78,15 @@ export default function NewsPage() {
               ? (dalaoTab==='intl' ? dalaoData.intl : dalaoData.domestic).map((n, i) => (
                 <div key={i} className="bg-[#12161C] rounded-lg p-3.5">
                   <div className="text-sm text-[#D1D5DB] leading-snug">{n.title}</div>
-                  {translations[i] && <div className="text-sm text-[#22C55E] leading-snug mt-1">{translations[i]}</div>}
+                  {dalaoTab === 'intl' && translations['intl_'+i] && <div className="text-sm text-[#22C55E] leading-snug mt-1">{translations['intl_'+i]}</div>}
                   <div className="flex items-center gap-2 text-[11px] text-[#6B7280] mt-1">
                     <span>{n.pubDate ? new Date(n.pubDate).toLocaleDateString('zh-CN', {month:'short',day:'numeric'}) : ''}</span>
-                    {dalaoTab === 'intl' && !translations[i] && (
+                    {dalaoTab === 'intl' && !translations['intl_'+i] && (
                       <button onClick={async () => {
                         try {
                           const r = await fetch('/api/translate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: n.title }) })
                           const j = await r.json()
-                          if (j.result) setTranslations(prev => ({ ...prev, [i]: j.result }))
+                          if (j.result) setTranslations(prev => ({ ...prev, ['intl_'+i]: j.result }))
                         } catch(e) {}
                       }} className="text-[#3B82F6] hover:underline">翻译</button>
                     )}
