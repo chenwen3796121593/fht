@@ -6,13 +6,14 @@ export async function onRequest() {
     const res = await fetch(`${PROXY}/?q=kitco+gold+silver+precious+metals&hl=en-US&gl=US&ceid=US:en`)
     const text = await res.text()
     const items = []
-    for (const m of [...text.matchAll(/<item>([\s\S]*?)<\/item>/gi)].slice(0, 10)) {
+    for (const m of [...text.matchAll(/<item>([\s\S]*?)<\/item>/gi)]) {
       const title = ((m[1].match(/<title>(.*?)<\/title>/i)||[])[1]||'').replace(/<!\[CDATA\[|\]\]>/g,'').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&')
       const link = ((m[1].match(/<link>(.*?)<\/link>/i)||[])[1]||'').trim()
       const pubDate = ((m[1].match(/<pubDate>(.*?)<\/pubDate>/i)||[])[1]||'').trim()
       if (title) items.push({title, link, pubDate, source:'Google News'})
     }
-    return new Response(JSON.stringify(items), {
+    items.sort((a,b) => new Date(b.pubDate) - new Date(a.pubDate))
+    return new Response(JSON.stringify(items.slice(0, 10)), {
       headers: {'Content-Type':'application/json; charset=utf-8','Access-Control-Allow-Origin':'*','Cache-Control':'public, max-age=1800'},
     })
   } catch(e) {

@@ -44,6 +44,14 @@ export default function NewsPage() {
 
 
 
+  // KITCO 点标签时刷新
+  useEffect(() => {
+    if (tab !== 'KITCO') return
+    fetch('/api/kitco-news').then(r => r.json()).then(d => {
+      setRssNews(prev => ({ ...prev, kitco: Array.isArray(d) ? d : [] }))
+    }).catch(() => {})
+  }, [tab])
+
   useEffect(() => {
     fetchAll()
     const t = setInterval(async () => {
