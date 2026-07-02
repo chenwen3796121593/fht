@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import TopBar from '../components/TopBar'
 import { useApp } from '../context/AppContext.jsx'
 import { getSB, loginAsAdmin, clearAdminToken } from '../lib/supabase.js'
 import { ADMIN_USERNAME } from '../lib/constants.js'
@@ -116,7 +115,6 @@ export default function VipPage() {
 
   return (
     <div className="bg-[#0A0F14] h-full overflow-y-auto">
-      <TopBar active="vip" />
       <VipHome phone={phone} setPhone={setPhone} reason={reason} setReason={setReason} submitted={submitted} submitting={submitting} handleApply={handleApply} />
       <div className="px-4 pb-8"><VipLogin username={username} setUsername={setUsername} password={password} setPassword={setPassword} loginErr={loginErr} handleLogin={handleLogin} /></div>
     </div>

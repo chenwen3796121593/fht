@@ -10,7 +10,7 @@ const INTL_MAP = {
   '钯金': { code: 'hf_XPD', name: '美钯金' },
 }
 
-export default function MetalsPage() {
+export default function MetalsPage({ hideTopBar }) {
   const { prices } = useApp()
   const [data, setData] = useState(null)
 
@@ -62,7 +62,7 @@ export default function MetalsPage() {
 
   return (
     <div className="bg-[#0A0F14] h-full flex flex-col">
-      <TopBar active="metals" />
+      {!hideTopBar && <TopBar active="metals" />}
 
       <div className="px-4 pt-4">
         <div className="flex items-center gap-2 mb-3">

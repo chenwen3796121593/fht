@@ -1,18 +1,19 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import TopBar from '../components/TopBar'
 import MarketBar from '../components/MarketBar'
 import { useApp } from '../context/AppContext.jsx'
 import { SkeletonMarketCards, SkeletonHomeStats } from '../components/Skeleton.jsx'
-import { Activity, TrendingUp, Snowflake, Flame } from 'lucide-react'
+import { Activity, TrendingUp, Snowflake, Flame, BarChart3 } from 'lucide-react'
+
+const IndicatorsPanel = lazy(() => import('../components/IndicatorsPanel'))
 
 function Thermometer({ pct, ready }) {
-  const h = Math.max(5, Math.min(100, 50 + pct * 20))
   const color = ready ? (pct > 0 ? '#EF4444' : pct < 0 ? '#22C55E' : '#F97316') : '#4D545C'
   return (
     <div className="flex items-center gap-1.5">
       <Snowflake size={12} style={{ color }} />
       <div className="flex-1 h-1.5 bg-[#1A2129] rounded-full overflow-hidden">
-        <div className="h-full rounded-full transition-all duration-1000" style={{ width: ready ? h + '%' : '50%', backgroundColor: color }} />
+        <div className="h-full rounded-full transition-all duration-1000" style={{ width: ready ? Math.max(5, Math.min(100, 50 + pct * 20)) + '%' : '50%', backgroundColor: color }} />
       </div>
       <Flame size={12} style={{ color }} />
     </div>
@@ -85,6 +86,7 @@ function SectorFlow() {
 export default function HomePage() {
   const { quotes, loading, breadth } = useApp()
   const isInitialLoad = loading && Object.keys(quotes).length === 0
+  const [subTab, setSubTab] = useState('sentiment')
   const [yesterday, setYesterday] = useState(null)
 
   const sh = quotes['sh000001'], sz = quotes['sz399001']
@@ -93,14 +95,11 @@ export default function HomePage() {
   const totalTurnover = todayAmt ? (todayAmt / 1e8).toFixed(0) + '亿' : '--'
   const avgChg = dataReady ? ((sh.change || 0) + (sz.change || 0)) / 2 : 0
 
-  // 昨日成交额对比（盘中不显示，收盘后~次日开盘前显示）
   const showDiff = (() => {
     const now = new Date()
-    if (now.getDay() === 0 || now.getDay() === 6) return true // 周末全天显示
+    if (now.getDay() === 0 || now.getDay() === 6) return true
     const h = now.getHours(), m = now.getMinutes()
-    const inMorning = (h === 9 && m >= 30) || h === 10 || (h === 11 && m < 30)
-    const inAfternoon = h === 13 || h === 14
-    return !(inMorning || inAfternoon) // 盘中不显示，其余时间显示
+    return !((h === 9 && m >= 30) || h === 10 || (h === 11 && m < 30) || h === 13 || h === 14)
   })()
   const diffAmt = (showDiff && yesterday?.total && todayAmt) ? todayAmt - yesterday.total : 0
   const diffStr = diffAmt ? ((diffAmt > 0 ? '+' : '') + (diffAmt / 1e8).toFixed(0) + '亿') : ''
@@ -114,33 +113,52 @@ export default function HomePage() {
       <TopBar active="home" />
       <div className="px-4 py-3 flex flex-col gap-3">
         {isInitialLoad ? <SkeletonMarketCards /> : <MarketBar quotes={quotes} />}
-        {isInitialLoad ? <SkeletonHomeStats /> : (
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-[#12161C] border border-[#242B33] rounded-xl p-3">
-              <div className="text-[10px] text-[#6B7280] mb-1">两市成交额</div>
-              <div className="text-base font-bold text-[#F0F2F5]">{totalTurnover}</div>
-              {diffStr && <div className={`text-[10px] font-medium mt-0.5 ${diffAmt > 0 ? 'text-[#EF4444]' : 'text-[#22C55E]'}`}>较昨日 {diffStr}</div>}
-            </div>
-            <div className="bg-[#12161C] border border-[#242B33] rounded-xl p-3">
-              <div className="text-[10px] text-[#6B7280] mb-1">市场温度</div>
-              <Thermometer pct={avgChg} ready={dataReady} />
-            </div>
-          </div>
-        )}
-        <div className="bg-[#12161C] border border-[#242B33] rounded-xl p-4">
-          <div className="text-xs text-[#8D949E] mb-3 flex items-center gap-1.5"><Activity size={14} /> 市场涨跌</div>
-          {breadth ? (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center justify-between"><span className="text-xs text-[#8D949E]">上涨家数</span><span className="text-sm font-bold text-[#EF4444]">{breadth.up}</span></div>
-              <div className="flex items-center justify-between"><span className="text-xs text-[#8D949E]">下跌家数</span><span className="text-sm font-bold text-[#22C55E]">{breadth.down}</span></div>
-              <div className="flex items-center justify-between"><span className="text-xs text-[#8D949E]">涨停家数</span><span className="text-sm font-bold text-[#EF4444]">{breadth.limUp}</span></div>
-              <div className="flex items-center justify-between"><span className="text-xs text-[#8D949E]">跌停家数</span><span className="text-sm font-bold text-[#22C55E]">{breadth.limDown}</span></div>
-            </div>
-          ) : (
-            <div className="text-xs text-[#4D545C]">加载中...</div>
-          )}
+
+        {/* 子标签 */}
+        <div className="flex gap-1.5 sticky top-[52px] bg-[#0A0F14] z-10 pb-1">
+          <button onClick={() => setSubTab('sentiment')} className={`px-3 py-1.5 rounded-md text-xs font-medium ${subTab==='sentiment' ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>
+            情绪
+          </button>
+          <button onClick={() => setSubTab('indicators')} className={`px-3 py-1.5 rounded-md text-xs font-medium ${subTab==='indicators' ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>
+            <BarChart3 size={13} className="inline mr-1" />指标
+          </button>
         </div>
-        <SectorFlow />
+
+        {subTab === 'sentiment' ? (
+          <>
+            {isInitialLoad ? <SkeletonHomeStats /> : (
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-[#12161C] border border-[#242B33] rounded-xl p-3">
+                  <div className="text-[10px] text-[#6B7280] mb-1">两市成交额</div>
+                  <div className="text-base font-bold text-[#F0F2F5]">{totalTurnover}</div>
+                  {diffStr && <div className={`text-[10px] font-medium mt-0.5 ${diffAmt > 0 ? 'text-[#EF4444]' : 'text-[#22C55E]'}`}>较昨日 {diffStr}</div>}
+                </div>
+                <div className="bg-[#12161C] border border-[#242B33] rounded-xl p-3">
+                  <div className="text-[10px] text-[#6B7280] mb-1">市场温度</div>
+                  <Thermometer pct={avgChg} ready={dataReady} />
+                </div>
+              </div>
+            )}
+            <div className="bg-[#12161C] border border-[#242B33] rounded-xl p-4">
+              <div className="text-xs text-[#8D949E] mb-3 flex items-center gap-1.5"><Activity size={14} /> 市场涨跌</div>
+              {breadth ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center justify-between"><span className="text-xs text-[#8D949E]">上涨家数</span><span className="text-sm font-bold text-[#EF4444]">{breadth.up}</span></div>
+                  <div className="flex items-center justify-between"><span className="text-xs text-[#8D949E]">下跌家数</span><span className="text-sm font-bold text-[#22C55E]">{breadth.down}</span></div>
+                  <div className="flex items-center justify-between"><span className="text-xs text-[#8D949E]">涨停家数</span><span className="text-sm font-bold text-[#EF4444]">{breadth.limUp}</span></div>
+                  <div className="flex items-center justify-between"><span className="text-xs text-[#8D949E]">跌停家数</span><span className="text-sm font-bold text-[#22C55E]">{breadth.limDown}</span></div>
+                </div>
+              ) : (
+                <div className="text-xs text-[#4D545C]">加载中...</div>
+              )}
+            </div>
+            <SectorFlow />
+          </>
+        ) : (
+          <Suspense fallback={<div className="text-center text-[#4D545C] text-sm py-12">加载中...</div>}>
+            <IndicatorsPanel />
+          </Suspense>
+        )}
       </div>
     </div>
   )

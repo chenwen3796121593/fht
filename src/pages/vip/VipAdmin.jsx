@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import TopBar from '../../components/TopBar'
 import { Check, X } from 'lucide-react'
 
 export default function VipAdmin({
@@ -41,7 +40,6 @@ export default function VipAdmin({
 
   return (
     <div className="bg-[#0A0F14] h-full overflow-y-auto">
-      <TopBar active="vip" />
 
       {/* Strategy editor */}
       <div className="px-4 pt-4 pb-3">
