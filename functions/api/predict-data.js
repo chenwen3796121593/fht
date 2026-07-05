@@ -1,20 +1,36 @@
-// 预测大模型数据代理 — GitHub 地址存于环境变量，源码不泄露
+// 预测大模型数据代理 — GitHub 地址存于环境变量
 export async function onRequest({ request, env }) {
-  const GH_BASE = env.GH_DATA_URL
-  if (!GH_BASE) {
-    return new Response(JSON.stringify({ error: 'not configured' }), {
-      status: 500, headers: { 'Content-Type': 'application/json' },
-    })
-  }
   const url = new URL(request.url)
   const file = url.searchParams.get('file')
-  if (!file || !/^[a-z0-9_.-]+\.json$/.test(file)) {
-    return new Response(JSON.stringify({ error: 'invalid' }), {
-      status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-    })
+  const raw = url.searchParams.get('raw') // 可选的完整 URL（用于其他仓库）
+
+  let target
+  if (raw) {
+    // 只允许 raw.githubusercontent.com 的链接
+    if (!raw.startsWith('https://raw.githubusercontent.com/')) {
+      return new Response(JSON.stringify({ error: 'invalid raw url' }), {
+        status: 400, headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    // CF 封 raw.githubusercontent.com，走 Deno 代理
+    target = `https://naive-toad-3432.chenheping1974.deno.net/?url=${encodeURIComponent(raw)}`
+  } else {
+    const GH_BASE = env.GH_DATA_URL
+    if (!GH_BASE) {
+      return new Response(JSON.stringify({ error: 'not configured' }), {
+        status: 500, headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    if (!file || !/^[a-z0-9_.-]+\.json$/.test(file)) {
+      return new Response(JSON.stringify({ error: 'invalid' }), {
+        status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      })
+    }
+    target = `${GH_BASE}/${file}`
   }
+
   try {
-    const res = await fetch(`${GH_BASE}/${file}`)
+    const res = await fetch(target)
     const data = await res.text()
     return new Response(data, {
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=3600' },

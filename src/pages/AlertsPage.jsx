@@ -259,6 +259,7 @@ const STOCK_MODELS = [
   { key: 'timesfm_full', name: 'TimesFM A股全量', file: 'timesfm_full_ranking.json', periods: ['30d','60d','128d'], showCode: false, showTarget: false, showPct: true },
 ]
 const COMMODITY_MODELS = [
+  { key: 'lightgbm', name: 'LightGBM全量A股', raw: 'https://raw.githubusercontent.com/chenheping1974/khquant/main/results/latest.json', periods: null, isLgbm: true, rows: 20 },
   { key: 'commodity', name: 'Chronos-2 商品', file: 'commodity_ranking.json', periods: ['7d','14d','30d'], showCode: false, showTarget: true, showPct: false },
   { key: 'moirai', name: 'Moirai-2 商品', file: 'moirai_ranking.json', periods: ['7d','14d','30d','60d','90d'], showCode: false, showTarget: true, showPct: false, transpose: true },
 ]
@@ -295,7 +296,9 @@ function PredictPanel() {
     try {
       await Promise.all(ALL_MODELS.map(async (m) => {
         try {
-          const res = await fetch(`${DATA_PROXY}?file=${m.file}&t=${Date.now()}`)
+          const t = Date.now()
+          const params = m.raw ? `raw=${encodeURIComponent(m.raw)}&t=${t}` : `file=${m.file}&t=${t}`
+          const res = await fetch(`${DATA_PROXY}?${params}`)
           results[m.key] = await res.json()
         } catch (e) { results[m.key] = null }
       }))
@@ -351,7 +354,7 @@ function PredictPanel() {
   }
 
   // Kronos-sm 扁平排名数组
-  const getKronosItems = (d) => (d?.ranking || []).slice(0, 50)
+  const getKronosItems = (d, m) => (d?.ranking || []).slice(0, m.rows || 50)
 
   // 获取数据日期
   const getDate = (d) => d?.updated || d?.data_date || ''
@@ -461,15 +464,26 @@ function PredictPanel() {
           }
 
           // 普通表格
-          const merged = m.isKronos ? null : mergePeriods(d?.rankings || {}, periods)
-          const items = m.isKronos ? getKronosItems(d) : merged.slice(0, 50)
+          const merged = (m.isKronos || m.isLgbm) ? null : mergePeriods(d?.rankings || {}, periods)
+          const items = m.isLgbm ? (d?.top30 || []).slice(0, m.rows) : (m.isKronos ? getKronosItems(d, m) : merged.slice(0, 50))
 
           return (
             <div key={m.key} className="bg-[#12161C] border border-[#242B33] rounded-lg overflow-hidden mt-2">
               <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 215px)' }}>
                 <table className="w-full text-[11px]">
                   <thead className="sticky top-0 bg-[#0D1117]">
-                    {m.isKronos ? (
+                    {m.isLgbm ? (
+                      <tr className="text-[#6B7280] border-b border-[#242B33]">
+                        <th className="text-center px-1 py-1.5 font-normal w-6">#</th>
+                        <th className="text-left px-2 py-1.5 font-normal">名称</th>
+                        <th className="text-left px-1 py-1.5 font-normal">代码</th>
+                        <th className="text-left px-1 py-1.5 font-normal">行业</th>
+                        <th className="text-right px-2 py-1.5 font-normal">综合分</th>
+                        <th className="text-right px-2 py-1.5 font-normal">价值</th>
+                        <th className="text-right px-2 py-1.5 font-normal">动量</th>
+                        <th className="text-right px-2 py-1.5 font-normal">质量</th>
+                      </tr>
+                    ) : m.isKronos ? (
                       <tr className="text-[#6B7280] border-b border-[#242B33]">
                         <th className="text-center px-1 py-1.5 font-normal w-6">#</th>
                         <th className="text-left px-2 py-1.5 font-normal">名称</th>
@@ -496,7 +510,15 @@ function PredictPanel() {
                         <td className="px-2 py-1.5 text-[#D1D5DB] whitespace-nowrap">{item.name}</td>
                         {isStock && <td className="px-1 py-1.5 text-[#4D545C]">{item.code || item.symbol || ''}</td>}
                         <td className="text-right px-2 py-1.5 text-[#D1D5DB] tabular-nums">{fmtPrice(item.current || item.last_close)}</td>
-                        {m.isKronos ? (
+                        {m.isLgbm ? (
+                          <>
+                            <td className="px-1 py-1.5 text-[#4D545C]">{item.industry || ''}</td>
+                            <td className="text-right px-2 py-1.5 text-[#F0F2F5] tabular-nums font-medium">{item.score?.toFixed(3) || '--'}</td>
+                            <td className="text-right px-2 py-1.5 tabular-nums" style={{ color: (item.value||0)>0 ? '#EF4444' : '#22C55E' }}>{item.value?.toFixed(3) || '--'}</td>
+                            <td className="text-right px-2 py-1.5 tabular-nums" style={{ color: (item.momentum||0)>0 ? '#EF4444' : '#22C55E' }}>{item.momentum?.toFixed(3) || '--'}</td>
+                            <td className="text-right px-2 py-1.5 tabular-nums" style={{ color: (item.quality||0)>0 ? '#EF4444' : '#22C55E' }}>{item.quality?.toFixed(3) || '--'}</td>
+                          </>
+                        ) : m.isKronos ? (
                           <>
                             <td className="text-right px-2 py-1.5 text-[#D1D5DB] tabular-nums">{fmtPrice(item.pred_close)}</td>
                             <td className="text-right px-2 py-1.5 tabular-nums font-medium"><Pct v={item.pct_change} /></td>
