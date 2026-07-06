@@ -259,7 +259,7 @@ const STOCK_MODELS = [
   { key: 'timesfm_full', name: 'TimesFM A股全量', file: 'timesfm_full_ranking.json', periods: ['30d','60d','128d'], showCode: false, showTarget: false, showPct: true },
 ]
 const COMMODITY_MODELS = [
-  { key: 'lightgbm', name: 'LightGBM全量A股', raw: 'https://raw.githubusercontent.com/chenheping1974/khquant/main/results/latest.json', periods: null, isLgbm: true, rows: 20 },
+  { key: 'lightgbm', name: 'LightGBM全量A股', raw: 'https://raw.githubusercontent.com/chenheping1974/khquant/main/results/latest.json', periods: null, isLgbm: true, rows: 30 },
   { key: 'commodity', name: 'Chronos-2 商品', file: 'commodity_ranking.json', periods: ['7d','14d','30d'], showCode: false, showTarget: true, showPct: false },
   { key: 'moirai', name: 'Moirai-2 商品', file: 'moirai_ranking.json', periods: ['7d','14d','30d','60d','90d'], showCode: false, showTarget: true, showPct: false, transpose: true },
 ]
@@ -479,9 +479,9 @@ function PredictPanel() {
                         <th className="text-left px-1 py-1.5 font-normal">代码</th>
                         <th className="text-left px-1 py-1.5 font-normal">行业</th>
                         <th className="text-right px-2 py-1.5 font-normal">综合分</th>
-                        <th className="text-right px-2 py-1.5 font-normal">价值</th>
+                        <th className="text-right px-2 py-1.5 font-normal">价值EP</th>
                         <th className="text-right px-2 py-1.5 font-normal">动量</th>
-                        <th className="text-right px-2 py-1.5 font-normal">质量</th>
+                        <th className="text-right px-2 py-1.5 font-normal">质量ROE</th>
                       </tr>
                     ) : m.isKronos ? (
                       <tr className="text-[#6B7280] border-b border-[#242B33]">
@@ -514,9 +514,9 @@ function PredictPanel() {
                           <>
                             <td className="px-1 py-1.5 text-[#4D545C]">{item.industry || ''}</td>
                             <td className="text-right px-2 py-1.5 text-[#F0F2F5] tabular-nums font-medium">{item.score?.toFixed(3) || '--'}</td>
-                            <td className="text-right px-2 py-1.5 tabular-nums" style={{ color: (item.value||0)>0 ? '#EF4444' : '#22C55E' }}>{item.value?.toFixed(3) || '--'}</td>
-                            <td className="text-right px-2 py-1.5 tabular-nums" style={{ color: (item.momentum||0)>0 ? '#EF4444' : '#22C55E' }}>{item.momentum?.toFixed(3) || '--'}</td>
-                            <td className="text-right px-2 py-1.5 tabular-nums" style={{ color: (item.quality||0)>0 ? '#EF4444' : '#22C55E' }}>{item.quality?.toFixed(3) || '--'}</td>
+                            <td className="text-right px-2 py-1.5 tabular-nums" style={{ color: (item.factors?.value_ep||0)>0 ? '#EF4444' : '#22C55E' }}>{item.factors?.value_ep?.toFixed(3) || '--'}</td>
+                            <td className="text-right px-2 py-1.5 tabular-nums" style={{ color: (item.factors?.momentum_12m1m||0)>0 ? '#EF4444' : '#22C55E' }}>{item.factors?.momentum_12m1m?.toFixed(3) || '--'}</td>
+                            <td className="text-right px-2 py-1.5 tabular-nums" style={{ color: (item.factors?.quality_roe||0)>0 ? '#EF4444' : '#22C55E' }}>{item.factors?.quality_roe?.toFixed(3) || '--'}</td>
                           </>
                         ) : m.isKronos ? (
                           <>

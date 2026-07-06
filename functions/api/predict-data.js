@@ -32,7 +32,9 @@ export async function onRequest({ request, env }) {
   try {
     const res = await fetch(target)
     const data = await res.text()
-    return new Response(data, {
+    // 清理非法 JSON 值 (NaN, Infinity)
+    const cleaned = data.replace(/: NaN/g, ': null').replace(/: Infinity/g, ': null').replace(/: -Infinity/g, ': null')
+    return new Response(cleaned, {
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=3600' },
     })
   } catch (e) {
