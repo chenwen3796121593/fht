@@ -469,19 +469,23 @@ function PredictPanel() {
 
           return (
             <div key={m.key} className="bg-[#12161C] border border-[#242B33] rounded-lg overflow-hidden mt-2">
+              {m.isLgbm && (
+                <div className="px-3 py-2 text-[10px] text-[#6B7280] border-b border-[#242B33] bg-[#0D1117] flex flex-wrap gap-x-4 gap-y-0.5">
+                  <span>模型：Medallion+BlackRock</span>
+                  <span>数据日期：{d?.date || '--'}</span>
+                  <span>更新：{d?.updated?.slice(0,16)?.replace('T',' ') || '--'}</span>
+                </div>
+              )}
               <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 215px)' }}>
                 <table className="w-full text-[11px]">
                   <thead className="sticky top-0 bg-[#0D1117]">
                     {m.isLgbm ? (
                       <tr className="text-[#6B7280] border-b border-[#242B33]">
                         <th className="text-center px-1 py-1.5 font-normal w-6">#</th>
-                        <th className="text-left px-2 py-1.5 font-normal">名称</th>
                         <th className="text-left px-1 py-1.5 font-normal">代码</th>
+                        <th className="text-left px-2 py-1.5 font-normal">名称</th>
                         <th className="text-left px-1 py-1.5 font-normal">行业</th>
-                        <th className="text-right px-2 py-1.5 font-normal">综合分</th>
-                        <th className="text-right px-2 py-1.5 font-normal">价值EP</th>
-                        <th className="text-right px-2 py-1.5 font-normal">动量</th>
-                        <th className="text-right px-2 py-1.5 font-normal">质量ROE</th>
+                        <th className="text-right px-2 py-1.5 font-normal">总分</th>
                       </tr>
                     ) : m.isKronos ? (
                       <tr className="text-[#6B7280] border-b border-[#242B33]">
@@ -507,16 +511,15 @@ function PredictPanel() {
                     {items.map((item, i) => (
                       <tr key={i} className="border-b border-[#1A2129] hover:bg-[#1A2129]/50">
                         <td className="text-center px-1 py-1.5 text-[#4D545C]">{i + 1}</td>
-                        <td className="px-2 py-1.5 text-[#D1D5DB] whitespace-nowrap">{item.name}</td>
-                        {isStock && <td className="px-1 py-1.5 text-[#4D545C]">{item.code || item.symbol || ''}</td>}
-                        <td className="text-right px-2 py-1.5 text-[#D1D5DB] tabular-nums">{fmtPrice(item.current || item.last_close)}</td>
+                        {!m.isLgbm && <td className="px-2 py-1.5 text-[#D1D5DB] whitespace-nowrap">{item.name}</td>}
+                        {!m.isLgbm && isStock && <td className="px-1 py-1.5 text-[#4D545C]">{item.code || item.symbol || ''}</td>}
+                        {!m.isLgbm && <td className="text-right px-2 py-1.5 text-[#D1D5DB] tabular-nums">{fmtPrice(item.current || item.last_close)}</td>}
                         {m.isLgbm ? (
                           <>
+                            <td className="px-1 py-1.5 text-[#D1D5DB] font-medium">{item.symbol || '--'}</td>
+                            <td className="px-2 py-1.5 text-[#D1D5DB] whitespace-nowrap">{item.name || '--'}</td>
                             <td className="px-1 py-1.5 text-[#4D545C]">{item.industry || ''}</td>
                             <td className="text-right px-2 py-1.5 text-[#F0F2F5] tabular-nums font-medium">{item.score?.toFixed(3) || '--'}</td>
-                            <td className="text-right px-2 py-1.5 tabular-nums" style={{ color: (item.factors?.value_ep||0)>0 ? '#EF4444' : '#22C55E' }}>{item.factors?.value_ep?.toFixed(3) || '--'}</td>
-                            <td className="text-right px-2 py-1.5 tabular-nums" style={{ color: (item.factors?.momentum_12m1m||0)>0 ? '#EF4444' : '#22C55E' }}>{item.factors?.momentum_12m1m?.toFixed(3) || '--'}</td>
-                            <td className="text-right px-2 py-1.5 tabular-nums" style={{ color: (item.factors?.quality_roe||0)>0 ? '#EF4444' : '#22C55E' }}>{item.factors?.quality_roe?.toFixed(3) || '--'}</td>
                           </>
                         ) : m.isKronos ? (
                           <>
@@ -534,6 +537,14 @@ function PredictPanel() {
                   </tbody>
                 </table>
               </div>
+              {m.isLgbm && d?.data_freshness && (
+                <div className="px-3 py-2 text-[10px] text-[#6B7280] border-t border-[#242B33] flex flex-wrap gap-x-3 gap-y-0.5">
+                  <span className="text-[#8D949E]">因子覆盖：</span>
+                  {Object.entries(d.data_freshness).map(([k,v]) => (
+                    <span key={k}>{k}: {v}</span>
+                  ))}
+                </div>
+              )}
             </div>
           )
         })}
