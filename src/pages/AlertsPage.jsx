@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import TopBar from '../components/TopBar'
 import { useApp } from '../context/AppContext.jsx'
 import { Bell, Vibrate, Volume2, Plus, Trash2, Zap, Send, Loader2, TrendingUp, RefreshCw } from 'lucide-react'
+import TabDropdown from '../components/TabDropdown'
 import { DEFAULT_WATCHLIST } from '../lib/constants.js'
 
 const MI = { push: Bell, vibrate: Vibrate, voice: Volume2 }
@@ -179,7 +180,7 @@ function AiPanel() {
   ]
 
   return (
-    <div className="flex flex-col" style={{ height: 'calc(100vh - 100px)' }}>
+    <div className="flex flex-col" style={{ height: 'min-h-[60vh]' }}>
       {/* 密码栏 */}
       {showPwdInput && (
         <div className="pt-3 pb-2">
@@ -361,7 +362,7 @@ function PredictPanel() {
   const latestDate = Object.values(data).map(getDate).filter(Boolean).sort().pop() || ''
 
   return (
-    <div className="flex flex-col" style={{ height: 'calc(100vh - 100px)' }}>
+    <div className="flex flex-col" style={{ height: 'min-h-[60vh]' }}>
       {showPwdInput && (
         <div className="pt-3 pb-2">
           <div className="bg-[#12161C] border border-[#3B82F6]/30 rounded-lg p-3 flex items-center gap-2">
@@ -376,29 +377,22 @@ function PredictPanel() {
       {!showPwdInput && <>
       {/* 模型标签 — 第一排股票，第二排商品+刷新 */}
       <div className="flex flex-col gap-1 pt-3">
-        <div className="flex gap-1 flex-wrap">
-          {STOCK_MODELS.map(m => (
-            <button key={m.key} onClick={() => { setActiveModel(m.key); setHfSite('') }}
-              className={`px-3 py-1.5 rounded-md text-[10px] font-medium transition-colors ${activeModel === m.key && !hfSite ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>
-              {m.name}
-            </button>
-          ))}
-        </div>
         <div className="flex gap-1 flex-wrap items-center">
-          {COMMODITY_MODELS.map(m => (
-            <button key={m.key} onClick={() => { setActiveModel(m.key); setHfSite('') }}
-              className={`px-3 py-1.5 rounded-md text-[10px] font-medium transition-colors ${activeModel === m.key && !hfSite ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>
-              {m.name}
-            </button>
-          ))}
-          <button onClick={async () => { try { const r = await fetch('/api/hf-proxy?site=timesfm'); const j = await r.json(); setIframeUrl(j.url); setHfSite('timesfm') } catch(e) {} }}
-            className={`px-3 py-1.5 rounded-md text-[10px] font-medium transition-colors ${hfSite === 'timesfm' ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>
-            TimesFM+Moirai
-          </button>
-          <button onClick={async () => { try { const r = await fetch('/api/hf-proxy?site=chronos'); const j = await r.json(); setIframeUrl(j.url); setHfSite('chronos') } catch(e) {} }}
-            className={`px-3 py-1.5 rounded-md text-[10px] font-medium transition-colors ${hfSite === 'chronos' ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>
-            Chronos+Kronos
-          </button>
+          <TabDropdown
+            tabs={[...STOCK_MODELS, ...COMMODITY_MODELS].map(m => ({ key: m.key, label: m.name }))}
+            active={hfSite ? '' : activeModel}
+            onChange={(k) => { setActiveModel(k); setHfSite('') }}
+          />
+          <TabDropdown
+            tabs={[
+              { key: 'timesfm', label: 'TimesFM+Moirai' },
+              { key: 'chronos', label: 'Chronos+Kronos' },
+            ]}
+            active={hfSite}
+            onChange={async (k) => {
+              try { const r = await fetch(`/api/hf-proxy?site=${k}`); const j = await r.json(); setIframeUrl(j.url); setHfSite(k) } catch(e) {}
+            }}
+          />
           <button onClick={fetchAll} disabled={loading} className="px-2 py-1 rounded text-[10px] font-medium bg-[#3B82F6] text-white flex items-center gap-1 active:scale-95 transition-all disabled:opacity-40">
             <RefreshCw size={11} className={loading ? 'animate-spin' : ''} /> 刷新
           </button>
@@ -415,7 +409,7 @@ function PredictPanel() {
               <span className="text-[10px] text-[#6B7280]">外部模型页面</span>
               <button onClick={() => { setIframeUrl(''); setHfSite('') }} className="px-2 py-0.5 rounded text-[10px] bg-[#1A2129] text-[#8D949E] hover:text-[#F0F2F5]">关闭</button>
             </div>
-            <iframe src={iframeUrl} className="flex-1 w-full border-0 rounded-lg" style={{ height: 'calc(100vh - 260px)' }} title="模型页面" />
+            <iframe src={iframeUrl} className="flex-1 w-full border-0 rounded-lg" className="min-h-[50vh]" title="模型页面" />
           </div>
         ) :
         ALL_MODELS.filter(m => m.key === activeModel).map(m => {
@@ -476,7 +470,7 @@ function PredictPanel() {
                   <span>更新：{d?.updated?.slice(0,16)?.replace('T',' ') || '--'}</span>
                 </div>
               )}
-              <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 215px)' }}>
+              <div className="overflow-y-auto" className="overflow-y-auto max-h-[55vh]">
                 <table className="w-full text-[11px]">
                   <thead className="sticky top-0 bg-[#0D1117]">
                     {m.isLgbm ? (

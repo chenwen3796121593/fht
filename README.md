@@ -22,7 +22,7 @@
 
 ## 🛠 技术栈
 
-React 19 + Vite 8 + Tailwind CSS 4 + Supabase + TradingView Lightweight-Charts v5 + Cloudflare Pages + Workers DO (视频信令) + Service Worker (数据代理) + DeepSeek API (AI分析)
+React 19 + Vite 8 + Tailwind CSS 4（响应式+移动端优先） + Supabase + TradingView Lightweight-Charts v5 + Cloudflare Pages + Workers DO (视频信令) + Service Worker (数据代理) + DeepSeek API (AI分析)
 
 ---
 

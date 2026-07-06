@@ -116,12 +116,8 @@ export default function HomePage() {
 
         {/* 子标签 */}
         <div className="flex gap-1.5 sticky top-[52px] bg-[#0A0F14] z-10 pb-1">
-          <button onClick={() => setSubTab('sentiment')} className={`px-3 py-1.5 rounded-md text-xs font-medium ${subTab==='sentiment' ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>
-            情绪
-          </button>
-          <button onClick={() => setSubTab('indicators')} className={`px-3 py-1.5 rounded-md text-xs font-medium ${subTab==='indicators' ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>
-            <BarChart3 size={13} className="inline mr-1" />指标
-          </button>
+          <button onClick={() => setSubTab('sentiment')} className={`px-3 py-1.5 rounded-md text-xs font-medium ${subTab==='sentiment' ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}><Activity size={13} className="inline mr-1" />情绪</button>
+          <button onClick={() => setSubTab('indicators')} className={`px-3 py-1.5 rounded-md text-xs font-medium ${subTab==='indicators' ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}><BarChart3 size={13} className="inline mr-1" />指标</button>
         </div>
 
         {subTab === 'sentiment' ? (

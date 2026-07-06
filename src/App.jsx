@@ -4,6 +4,7 @@ import HomePage from './pages/HomePage'
 import NewsPage from './pages/NewsPage'
 import AlertsPage from './pages/AlertsPage'
 import CommoditiesPage from './pages/CommoditiesPage'
+import Layout from './components/Layout'
 import ErrorBoundary from './components/ErrorBoundary'
 import IncomingCall from './components/IncomingCall'
 import VideoRoom from './components/VideoRoom'
@@ -13,7 +14,7 @@ const ChatPage = lazy(() => import('./pages/ChatPage'))
 
 function usePreload() {
   useEffect(() => {
-    const preload = () => { import('./pages/Dashboard'); import('./pages/ChatPage');  }
+    const preload = () => { import('./pages/Dashboard'); import('./pages/ChatPage') }
     const idle = 'requestIdleCallback' in window ? requestIdleCallback : setTimeout
     const id = idle(preload, { timeout: 3000 })
     return () => { 'cancelIdleCallback' in window ? cancelIdleCallback(id) : clearTimeout(id) }
@@ -21,20 +22,20 @@ function usePreload() {
 }
 
 function Loading() {
-  return <div className="bg-[#0A0F14] h-full flex items-center justify-center"><span className="text-sm text-[#4D545C]">加载中...</span></div>
+  return <div className="flex-1 flex items-center justify-center"><span className="text-sm text-[#4D545C]">加载中...</span></div>
 }
 
 function PageRouter() {
   const { currentPage } = useApp()
   return (
-    <div className="bg-[#0A0F14] mx-auto overflow-hidden max-sm:max-w-[390px] sm:max-w-[480px] w-full h-dvh">
+    <Layout>
       {currentPage === 'home' && <HomePage />}
       {currentPage === 'dashboard' && <Suspense fallback={<Loading />}><Dashboard /></Suspense>}
       {currentPage === 'news' && <NewsPage />}
       {currentPage === 'chat' && <Suspense fallback={<Loading />}><ChatPage /></Suspense>}
       {currentPage === 'alerts' && <AlertsPage />}
       {currentPage === 'commodities' && <CommoditiesPage />}
-    </div>
+    </Layout>
   )
 }
 
@@ -43,7 +44,6 @@ function Preloader() { usePreload(); return null }
 function CallManager() {
   const { incomingCall, dismissIncoming } = useApp()
   const [callRoom, setCallRoom] = useState(() => {
-    // Auto-join room from push notification URL
     const p = new URLSearchParams(window.location.search)
     return p.get('room') || null
   })

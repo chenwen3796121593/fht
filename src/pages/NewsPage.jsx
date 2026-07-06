@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import TopBar from '../components/TopBar'
+import TabDropdown from '../components/TabDropdown'
 import { NEWS_INTERVAL } from '../lib/constants.js'
 
-const tabs = ['股票', '商品', 'KITCO', '宏观', '大佬观点']
+const tabs = ['股票', '商品', 'KITCO', '宏观']
+const DALAO_TABS = [{key:'intl',label:'国际大佬'},{key:'domestic',label:'券商首席'}]
 
 
 function fmtTime(d) {
@@ -67,20 +69,17 @@ export default function NewsPage() {
   return (
     <div className="overflow-y-auto bg-[#0A0F14] h-full">
       <TopBar active="news" />
-      <div className="px-4 pt-2 pb-2 flex items-center justify-between sticky top-[52px] bg-[#0A0F14] z-10">
-        <div className="flex gap-1.5">
+      <div className="px-4 pt-2 pb-2 flex items-center justify-between sticky top-[52px] bg-[#0A0F14] z-20">
+        <div className="flex gap-1.5 items-center">
           {tabs.map(t => (
             <button key={t} onClick={() => setTab(t)} className={`px-3 py-1.5 rounded-md text-xs font-medium ${tab===t ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>{t}</button>
           ))}
+          <TabDropdown tabs={DALAO_TABS} active={dalaoTab} onChange={(k) => { setTab('dalao'); setDalaoTab(k) }} className={tab==='dalao' ? '' : ''} />
         </div>
       </div>
 
-      {tab === '大佬观点' ? (
+      {tab === 'dalao' ? (
         <div className="px-4 flex flex-col gap-3 pb-8">
-          <div className="flex gap-1.5 pt-1 pb-2 sticky top-[82px] bg-[#0A0F14] z-10">
-            <button onClick={() => setDalaoTab('intl')} className={`px-3 py-1.5 rounded-md text-xs font-medium ${dalaoTab==='intl' ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>国际大佬</button>
-            <button onClick={() => setDalaoTab('domestic')} className={`px-3 py-1.5 rounded-md text-xs font-medium ${dalaoTab==='domestic' ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>券商首席</button>
-          </div>
           <div className="flex flex-col gap-1">
             {(dalaoTab==='intl' ? dalaoData?.intl : dalaoData?.domestic)?.length > 0
               ? (dalaoTab==='intl' ? dalaoData.intl : dalaoData.domestic).map((n, i) => (
@@ -101,7 +100,12 @@ export default function NewsPage() {
                   </div>
                 </div>
               ))
-              : <div className="text-center text-[#4D545C] text-sm py-8">加载中...</div>
+              : <div className="flex flex-col gap-1.5">{Array.from({length:5}).map((_,i)=>(
+                <div key={i} className="bg-[#12161C] rounded-lg p-3.5 animate-pulse">
+                  <div className="h-3 bg-[#1A2129] rounded w-3/4 mb-2" />
+                  <div className="h-2 bg-[#1A2129] rounded w-1/4" />
+                </div>
+              ))}</div>
             }
           </div>
         </div>

@@ -95,7 +95,7 @@ export default function Watchlist({ selected, onSelect, prices = {}, customStock
         </div>
       )}
 
-      <div className="flex flex-col gap-1.5 max-h-[150px] overflow-y-auto scrollbar-hide">
+      <div className="flex flex-col gap-1.5 max-h-[120px] lg:max-h-[50vh] overflow-y-auto scrollbar-hide">
         {all.map((s) => {
           const d = prices[s.symbol]
           let priceStr = '--', changeStr = '--', up = true
