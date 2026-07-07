@@ -11,13 +11,13 @@ export default function TabDropdown({ tabs, active, onChange, className = '' }) 
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  const activeTab = tabs.find(t => t.key === active) || tabs[0]
+  const activeTab = tabs.find(t => t.key === active)
 
   return (
     <div ref={ref} className={`relative ${className}`}>
       <button onClick={() => setOpen(!open)}
-        className="px-3 py-1.5 rounded-md text-xs font-medium bg-[#3B82F6] text-white flex items-center gap-1 active:scale-95 transition-all">
-        {activeTab?.label || active}
+        className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1 active:scale-95 transition-all min-w-[100px] ${activeTab ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>
+        {activeTab?.label || active || '选择'}
         <ChevronDown size={12} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (

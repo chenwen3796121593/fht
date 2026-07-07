@@ -103,6 +103,8 @@ export default function HomePage() {
   })()
   const diffAmt = (showDiff && yesterday?.total && todayAmt) ? todayAmt - yesterday.total : 0
   const diffStr = diffAmt ? ((diffAmt > 0 ? '+' : '') + (diffAmt / 1e8).toFixed(0) + '亿') : ''
+  const prevDiffAmt = (showDiff && yesterday?.prevTotal && todayAmt) ? todayAmt - yesterday.prevTotal : 0
+  const prevDiffStr = prevDiffAmt ? ((prevDiffAmt > 0 ? '+' : '') + (prevDiffAmt / 1e8).toFixed(0) + '亿') : ''
 
   useEffect(() => {
     fetch('/api/yesterday-turnover').then(r => r.json()).then(d => d.total && setYesterday(d)).catch(() => {})
@@ -125,9 +127,14 @@ export default function HomePage() {
             {isInitialLoad ? <SkeletonHomeStats /> : (
               <div className="grid grid-cols-2 gap-2">
                 <div className="bg-[#12161C] border border-[#242B33] rounded-xl p-3">
-                  <div className="text-[10px] text-[#6B7280] mb-1">两市成交额</div>
-                  <div className="text-base font-bold text-[#F0F2F5]">{totalTurnover}</div>
-                  {diffStr && <div className={`text-[10px] font-medium mt-0.5 ${diffAmt > 0 ? 'text-[#EF4444]' : 'text-[#22C55E]'}`}>较昨日 {diffStr}</div>}
+                  <div className="flex flex-col gap-0.5">
+                    <div className="text-xs"><span className="text-[#6B7280]">两市成交额 </span><span className="text-[#F0F2F5] font-bold">{totalTurnover}</span></div>
+                    {(diffStr || prevDiffStr) && <div className="text-[10px] flex gap-2">
+                      {diffStr && <span className="whitespace-nowrap"><span className="text-[#6B7280]">较昨日</span><span className={`font-medium ${diffAmt > 0 ? 'text-[#EF4444]' : 'text-[#22C55E]'}`}>{diffStr}</span></span>}
+                      {diffStr && prevDiffStr && <span className="text-[#4D545C]">/</span>}
+                      {prevDiffStr && <span className="whitespace-nowrap"><span className="text-[#6B7280]">较前日</span><span className={`font-medium ${prevDiffAmt > 0 ? 'text-[#EF4444]' : 'text-[#22C55E]'}`}>{prevDiffStr}</span></span>}
+                    </div>}
+                  </div>
                 </div>
                 <div className="bg-[#12161C] border border-[#242B33] rounded-xl p-3">
                   <div className="text-[10px] text-[#6B7280] mb-1">市场温度</div>

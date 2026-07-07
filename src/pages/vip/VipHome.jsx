@@ -1,11 +1,11 @@
-const aiDesc = 'VIP 客户专享预测大模型AI服务：基于多维度市场数据\n与深度学习算法，提供商品股票趋势预测和智能择时信号。'
+const aiDesc = 'VIP 客户专享大模型AI服务：基于多维度市场数据\n与深度学习算法，提供商品股票趋势预测和智能择时信号。'
 
 export default function VipHome({ phone, setPhone, reason, setReason, submitted, submitting, handleApply }) {
   return (
     <>
       <div className="px-4 pb-4">
         <div className="rounded-xl px-1 py-3.5 pt-5">
-          <div className="mb-1.5"><span className="text-sm font-bold text-[#F0F2F5]">预测大模型AI服务</span></div>
+          <div className="mb-1.5"><span className="text-sm font-bold text-[#F0F2F5]">大模型AI服务</span></div>
           <div className="text-[11px] text-[#D1D5DB] leading-relaxed whitespace-pre-line">{aiDesc}</div>
         </div>
       </div>

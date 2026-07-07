@@ -3,7 +3,7 @@ import TopBar from '../components/TopBar'
 import TabDropdown from '../components/TabDropdown'
 import { NEWS_INTERVAL } from '../lib/constants.js'
 
-const tabs = ['股票', '商品', 'KITCO', '宏观']
+const tabs = ['KITCO', '宏观']
 const DALAO_TABS = [{key:'intl',label:'国际大佬'},{key:'domestic',label:'券商首席'}]
 
 
@@ -17,7 +17,7 @@ function fmtTime(d) {
 
 export default function NewsPage() {
   const [tab, setTab] = useState('股票')
-  const [rssNews, setRssNews] = useState({ stock: [], commodity: [], kitco: [], macro: [] })
+  const [rssNews, setRssNews] = useState({ kitco: [], macro: [] })
   const [loading, setLoading] = useState(true)
   const [dalaoData, setDalaoData] = useState(null)
   const [dalaoTab, setDalaoTab] = useState('domestic')
@@ -30,16 +30,10 @@ export default function NewsPage() {
   const fetchAll = useCallback(async () => {
     setLoading(true)
     try {
-      const urls = ['/api/rss-news?type=stock', '/api/rss-news?type=commodity', '/api/kitco-news', '/api/macro-news']
+      const urls = ['/api/kitco-news', '/api/macro-news']
       const responses = await Promise.all(urls.map(u => fetch(u).catch(() => ({ json: () => [] }))))
       const data = await Promise.all(responses.map(r => r.json().catch(() => [])))
-      const sortByStars = (arr) => arr.sort((a, b) => {
-        const sa = (a.title||'').match(/(★+)/)?.[1]?.length || 0
-        const sb = (b.title||'').match(/(★+)/)?.[1]?.length || 0
-        if (sa !== sb) return sb - sa
-        return new Date(b.pubDate||0) - new Date(a.pubDate||0)
-      })
-      setRssNews({ stock: sortByStars(Array.isArray(data[0]) ? data[0] : []), commodity: sortByStars(Array.isArray(data[1]) ? data[1] : []), kitco: Array.isArray(data[2]) ? data[2] : [], macro: Array.isArray(data[3]) ? data[3] : [] })
+      setRssNews({ kitco: Array.isArray(data[0]) ? data[0] : [], macro: Array.isArray(data[1]) ? data[1] : [] })
     } catch(e) {}
     setLoading(false)
   }, [])
@@ -63,8 +57,8 @@ export default function NewsPage() {
   }, [fetchAll])
 
   const sorted = (arr) => [...arr].sort((a,b) => new Date(b.pubDate||b.time) - new Date(a.pubDate||a.time))
-  const all = sorted([...rssNews.stock, ...rssNews.commodity, ...rssNews.kitco, ...rssNews.macro])
-  const filtered = tab === '股票' ? rssNews.stock : tab === '商品' ? rssNews.commodity : tab === 'KITCO' ? rssNews.kitco : tab === '宏观' ? rssNews.macro : all
+  const all = sorted([...rssNews.kitco, ...rssNews.macro])
+  const filtered = tab === 'KITCO' ? rssNews.kitco : tab === '宏观' ? rssNews.macro : all
 
   return (
     <div className="overflow-y-auto bg-[#0A0F14] h-full">

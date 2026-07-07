@@ -13,7 +13,7 @@ export async function onRequest({ request, env }) {
       })
     }
     // CF 封 raw.githubusercontent.com，走 Deno 代理
-    target = `https://naive-toad-3432.chenheping1974.deno.net/?url=${encodeURIComponent(raw)}`
+    target = `https://naive-toad-3432.chenheping1974.deno.net/?url=${encodeURIComponent(raw+'?t='+Date.now())}`
   } else {
     const GH_BASE = env.GH_DATA_URL
     if (!GH_BASE) {
@@ -32,10 +32,10 @@ export async function onRequest({ request, env }) {
   try {
     const res = await fetch(target)
     const data = await res.text()
-    // 清理非法 JSON 值 (NaN, Infinity)
     const cleaned = data.replace(/: NaN/g, ': null').replace(/: Infinity/g, ': null').replace(/: -Infinity/g, ': null')
+    const cacheTime = raw ? 300 : 3600 // raw 数据 5 分钟，静态数据 1 小时
     return new Response(cleaned, {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=3600' },
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': `public, max-age=${cacheTime}` },
     })
   } catch (e) {
     return new Response(JSON.stringify({ error: e.message }), {

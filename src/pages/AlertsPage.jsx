@@ -253,7 +253,7 @@ function AiPanel() {
   )
 }
 
-// =========== 预测大模型面板 ===========
+// =========== 大模型面板 ===========
 const STOCK_MODELS = [
   { key: 'kronos', name: 'Kronos-sm A股精选', file: 'ranking.json', periods: null, isKronos: true },
   { key: 'timesfm', name: 'TimesFM A股精选', file: 'timesfm_ranking.json', periods: ['30d','60d','128d'], showCode: false, showTarget: false, showPct: true },
@@ -370,7 +370,7 @@ function PredictPanel() {
             <button onClick={savePwd} disabled={!pwd.trim()} className="px-4 py-2 rounded-md bg-[#3B82F6] text-white text-xs font-medium disabled:opacity-40 whitespace-nowrap">确认</button>
           </div>
           {pwdErr && <div className="text-[11px] text-[#EF4444] mt-1 text-center">{pwdErr}</div>}
-          {!pwdErr && <div className="text-[10px] text-[#6B7280] mt-1 text-center">预测大模型为 VIP 专享，开通 VIP 请联系管理员</div>}
+          {!pwdErr && <div className="text-[10px] text-[#6B7280] mt-1 text-center">大模型为 VIP 专享，开通 VIP 请联系管理员</div>}
         </div>
       )}
 
@@ -393,9 +393,6 @@ function PredictPanel() {
               try { const r = await fetch(`/api/hf-proxy?site=${k}`); const j = await r.json(); setIframeUrl(j.url); setHfSite(k) } catch(e) {}
             }}
           />
-          <button onClick={fetchAll} disabled={loading} className="px-2 py-1 rounded text-[10px] font-medium bg-[#3B82F6] text-white flex items-center gap-1 active:scale-95 transition-all disabled:opacity-40">
-            <RefreshCw size={11} className={loading ? 'animate-spin' : ''} /> 刷新
-          </button>
           <span className="text-[10px] text-[#6B7280]">{latestDate ? `更新: ${latestDate.slice(5, 16).replace('T', ' ')}` : ''}</span>
         </div>
       </div>
@@ -463,11 +460,13 @@ function PredictPanel() {
 
           return (
             <div key={m.key} className="bg-[#12161C] border border-[#242B33] rounded-lg overflow-hidden mt-2">
-              {m.isLgbm && (
-                <div className="px-3 py-2 text-[10px] text-[#6B7280] border-b border-[#242B33] bg-[#0D1117] flex flex-wrap gap-x-4 gap-y-0.5">
-                  <span>模型：Medallion+BlackRock</span>
-                  <span>数据日期：{d?.date || '--'}</span>
-                  <span>更新：{d?.updated?.slice(0,16)?.replace('T',' ') || '--'}</span>
+              {(m.isLgbm || d?.updated || d?.data_date) && (
+                <div className="px-3 py-2 text-[10px] text-[#6B7280] border-b border-[#242B33] bg-[#0D1117] flex items-center gap-x-4">
+                  {m.isLgbm && <span>模型：Medallion+BlackRock</span>}
+                  <span>{d?.updated ? `更新: ${d.updated.slice(0,16).replace('T',' ')}` : d?.data_date ? `日期: ${d.data_date}` : ''}</span>
+                  <button onClick={fetchAll} disabled={loading} className="ml-auto text-[#6B7280] hover:text-[#F0F2F5] disabled:opacity-40">
+                    <RefreshCw size={11} className={loading ? 'animate-spin' : ''} />
+                  </button>
                 </div>
               )}
               <div className="overflow-y-auto" className="overflow-y-auto max-h-[55vh]">
@@ -563,14 +562,14 @@ export default function AlertsPage() {
       <TopBar active="alerts" />
       <div className="px-4">
         <div className="flex gap-1 pt-3">
-          <button onClick={() => switchTab('predict')} className={`px-4 py-1.5 rounded-md text-xs font-medium transition-colors ${tab === 'predict' ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>
-            <TrendingUp size={13} className="inline mr-1" />预测大模型
+          <button onClick={() => switchTab('predict')} className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center justify-center gap-1 ${tab === 'predict' ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>
+            <TrendingUp size={13} />大模型
           </button>
-          <button onClick={() => switchTab('ai')} className={`px-4 py-1.5 rounded-md text-xs font-medium transition-colors ${tab === 'ai' ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>
-            <Zap size={13} className="inline mr-1" />AI分析
+          <button onClick={() => switchTab('ai')} className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center justify-center gap-1 ${tab === 'ai' ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>
+            <Zap size={13} />AI分析
           </button>
-          <button onClick={() => switchTab('alerts')} className={`px-4 py-1.5 rounded-md text-xs font-medium transition-colors ${tab === 'alerts' ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>
-            <Bell size={13} className="inline mr-1" />预警
+          <button onClick={() => switchTab('alerts')} className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center justify-center gap-1 ${tab === 'alerts' ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>
+            <Bell size={13} />预警
           </button>
         </div>
         {tab === 'alerts' ? <AlertsPanel prices={prices} /> : tab === 'ai' ? <AiPanel /> : <PredictPanel />}
