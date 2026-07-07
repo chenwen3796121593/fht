@@ -469,7 +469,7 @@ function PredictPanel() {
                   </button>
                 </div>
               )}
-              <div className="overflow-y-auto" className="overflow-y-auto max-h-[55vh]">
+              <div className="overflow-y-auto" className="overflow-y-auto max-h-[75vh]">
                 <table className="w-full text-[11px]">
                   <thead className="sticky top-0 bg-[#0D1117]">
                     {m.isLgbm ? (
