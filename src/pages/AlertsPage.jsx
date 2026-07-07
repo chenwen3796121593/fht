@@ -295,14 +295,14 @@ function PredictPanel() {
     setError('')
     const results = {}
     try {
-      await Promise.all(ALL_MODELS.map(async (m) => {
+      for (const m of ALL_MODELS) {
         try {
-          const t = Date.now()
-          const params = m.raw ? `raw=${encodeURIComponent(m.raw)}&t=${t}` : `file=${m.file}&t=${t}`
+          const params = m.raw ? `raw=${encodeURIComponent(m.raw)}` : `file=${m.file}`
           const res = await fetch(`${DATA_PROXY}?${params}`)
           results[m.key] = await res.json()
         } catch (e) { results[m.key] = null }
-      }))
+        await new Promise(r => setTimeout(r, 500)) // 间隔500ms防限流
+      }
       setData(results)
     } catch (e) { setError(e.message) }
     setLoading(false)

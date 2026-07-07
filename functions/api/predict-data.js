@@ -22,7 +22,10 @@ export async function onRequest({ request, env }) {
     const res = await fetch(target)
     const data = await res.text()
     const cleaned = data.replace(/: NaN/g, ': null').replace(/: Infinity/g, ': null').replace(/: -Infinity/g, ': null')
-    const cacheTime = raw ? 300 : 3600
+    // 缓存到今天23:59:59过期，每天零点自动刷新
+    const now = new Date()
+    const midnight = new Date(now); midnight.setHours(24,0,0,0)
+    const cacheTime = Math.floor((midnight - now) / 1000)
     return new Response(cleaned, {
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': `public, max-age=${cacheTime}` },
     })
