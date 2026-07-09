@@ -1,11 +1,15 @@
 const MACRO_KW = [
-  '央行', '美联储', '人民银行', '证监会', '银保监', '财政部',
-  '国家统计局', '商务部', '发改委', '国务院',
+  '央行', '美联储', '人民银行',
+  '财政部', '国家统计局', '商务部', '发改委', '国务院',
   '欧洲央行', '日本央行', 'IMF', '世界银行',
   '利率决议', '货币政策', '存款准备金',
-  '非农', '降息', '加息', 'LPR',
-  '汇率', '国债', '社融',
+  '非农', '降息', '加息', 'LPR', '社融', '国债',
+  'GDP', 'CPI', 'PMI', 'PPI', '通胀', '通缩',
+  'M1', 'M2', '货币供应',
 ]
+
+// 排除词：非宏观的公司层面新闻
+const EXCLUDE = ['立案', '跌停', '涨停', '索赔', '减持', '回购', '分红', '业绩', 'ST', '退市']
 
 export async function onRequest() {
   try {
@@ -15,8 +19,12 @@ export async function onRequest() {
     const json = await res.json()
     const items = (json?.result?.data || [])
       .filter(i => {
-        const t = (i.title + i.intro).toLowerCase()
-        return MACRO_KW.some(k => t.includes(k))
+        const title = i.title || ''
+        const full = title + (i.intro || '')
+        // 只匹配标题，避免正文中顺带提到的假宏观
+        const match = MACRO_KW.some(k => title.includes(k))
+        const exclude = EXCLUDE.some(k => full.includes(k))
+        return match && !exclude
       })
       .map(i => ({
         title: i.title || '',
@@ -27,7 +35,7 @@ export async function onRequest() {
         category: '宏观',
       }))
     return new Response(JSON.stringify(items), {
-      headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=86400' },
+      headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=86400', 'X-Macro-Version': 'v2' },
     })
   } catch (e) {
     return new Response('[]', { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } })

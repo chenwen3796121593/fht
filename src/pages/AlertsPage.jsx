@@ -297,11 +297,11 @@ function PredictPanel() {
     try {
       for (const m of ALL_MODELS) {
         try {
-          const params = m.raw ? `raw=${encodeURIComponent(m.raw)}` : `file=${m.file}`
+          const params = m.raw ? `raw=${encodeURIComponent(m.raw)}&v=2` : `file=${m.file}&v=2`
           const res = await fetch(`${DATA_PROXY}?${params}`)
           results[m.key] = await res.json()
         } catch (e) { results[m.key] = null }
-        await new Promise(r => setTimeout(r, 500)) // 间隔500ms防限流
+        await new Promise(r => setTimeout(r, 1000)) // 间隔1秒防限流
       }
       setData(results)
     } catch (e) { setError(e.message) }
