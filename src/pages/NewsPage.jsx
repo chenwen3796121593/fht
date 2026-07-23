@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import TopBar from '../components/TopBar'
 import { NEWS_INTERVAL } from '../lib/constants.js'
 
-const tabs = ['KITCO', '宏观', '国际大佬']
+const tabs = ['KITCO', '宏观']
 
 
 function fmtTime(d) {
@@ -14,14 +14,9 @@ function fmtTime(d) {
 }
 
 export default function NewsPage() {
-  const [tab, setTab] = useState('股票')
+  const [tab, setTab] = useState('KITCO')
   const [rssNews, setRssNews] = useState({ kitco: [], macro: [] })
   const [loading, setLoading] = useState(true)
-  const [dalaoData, setDalaoData] = useState(null)
-
-  useEffect(() => {
-    fetch('/api/dalao-news?v=5').then(r => r.json()).then(d => setDalaoData(d)).catch(() => {})
-  }, [])
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
@@ -67,28 +62,6 @@ export default function NewsPage() {
         </div>
       </div>
 
-      {tab === '国际大佬' ? (
-        <div className="px-4 flex flex-col gap-3 pb-8">
-          <div className="flex flex-col gap-1">
-            {dalaoData?.intl?.length > 0
-              ? dalaoData.intl.map((n, i) => (
-                <div key={i} className="bg-[#12161C] rounded-lg p-3.5">
-                  <div className="text-sm text-[#D1D5DB] leading-snug">{n.title}</div>
-                  <div className="flex items-center gap-2 text-[11px] text-[#6B7280] mt-1">
-                    <span>{n.pubDate ? new Date(n.pubDate).toLocaleDateString('zh-CN', {month:'short',day:'numeric'}) : ''}</span>
-                  </div>
-                </div>
-              ))
-              : <div className="flex flex-col gap-1.5">{Array.from({length:5}).map((_,i)=>(
-                <div key={i} className="bg-[#12161C] rounded-lg p-3.5 animate-pulse">
-                  <div className="h-3 bg-[#1A2129] rounded w-3/4 mb-2" />
-                  <div className="h-2 bg-[#1A2129] rounded w-1/4" />
-                </div>
-              ))}</div>
-            }
-          </div>
-        </div>
-      ) : (
         <div className="px-4 flex flex-col gap-1.5 pb-8">
           {loading && filtered.length===0 && <div className="text-center text-[#4D545C] text-sm py-12">加载中...</div>}
           {filtered.map((n, i) => (
@@ -101,7 +74,6 @@ export default function NewsPage() {
             </div>
           ))}
         </div>
-      )}
     </div>
   )
 }

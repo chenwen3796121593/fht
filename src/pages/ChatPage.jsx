@@ -33,7 +33,7 @@ function JoinScreen({ nick, setNick, connected, onJoin }) {
       <TopBar active="chat" />
       <div className="flex-1 flex items-center justify-center">
         <div className="flex flex-col gap-4 w-64">
-          <div className="text-center"><MessageCircle size={40} className="text-[#3B82F6] mx-auto mb-3" /><div className="text-lg font-bold text-[#F0F2F5]">烽火台聊天室</div><div className="text-xs text-[#8D949E] mt-1">{connected ? <><span className="inline-block w-2 h-2 rounded-full bg-[#22C55E] mr-1" />已连接</> : '连接中...'}</div></div>
+          <div className="text-center"><div className="text-xs text-[#8D949E] mt-1">{connected ? <><span className="inline-block w-2 h-2 rounded-full bg-[#22C55E] mr-1" />已连接</> : '连接中...'}</div></div>
           <input className="bg-[#1A2129] rounded-lg px-4 py-3 text-sm text-[#F0F2F5] outline-none" placeholder="输入昵称" value={nick} onChange={e => setNick(e.target.value)} onKeyDown={e => e.key === 'Enter' && onJoin()} />
           <button onClick={onJoin} disabled={!nick.trim()} className="bg-[#3B82F6] text-white py-3 rounded-lg font-semibold disabled:opacity-50">进入聊天室</button>
         </div>
