@@ -261,7 +261,6 @@ const STOCK_MODELS = [
 ]
 const COMMODITY_MODELS = [
   { key: 'lightgbm', name: 'LightGBM全量A股', raw: 'https://raw.githubusercontent.com/chenheping1974/khquant/main/results/latest.json', periods: null, isLgbm: true, rows: 30 },
-  { key: 'commodity', name: 'Chronos-2 商品', file: 'commodity_ranking.json', periods: ['7d','14d','30d'], showCode: false, showTarget: true, showPct: false },
   { key: 'moirai', name: 'Moirai-2 商品', file: 'moirai_ranking.json', periods: ['7d','14d','30d','60d','90d'], showCode: false, showTarget: true, showPct: false, transpose: true },
 ]
 const ALL_MODELS = [...STOCK_MODELS, ...COMMODITY_MODELS]
