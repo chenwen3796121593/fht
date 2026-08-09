@@ -36,7 +36,7 @@ const NAME_MAP = {
   '三一重工': 'sh600031',
 }
 
-export default function Watchlist({ selected, onSelect, prices = {}, customStocks = [], onAddStock, onRemoveStock }) {
+export default function Watchlist({ selected, onSelect, prices = {}, customStocks = [], onAddStock, onRemoveStock, embedded = false }) {
   const [showAdd, setShowAdd] = useState(false)
   const [code, setCode] = useState('')
 
@@ -49,7 +49,6 @@ export default function Watchlist({ selected, onSelect, prices = {}, customStock
     let symbol = NAME_MAP[input] || input
     let name = input
 
-    // Try prefix auto-fix, or search if not a known name
     const normalized = normalizeSymbol(symbol)
     if (normalized !== symbol && /^[0-9]/.test(symbol)) {
       symbol = normalized
@@ -76,26 +75,26 @@ export default function Watchlist({ selected, onSelect, prices = {}, customStock
   const all = [...DEFAULT_WATCHLIST, ...customStocks]
 
   return (
-    <div className="px-4 pb-3">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-semibold text-[#F0F2F5]">自选</span>
-        <button onClick={() => setShowAdd(!showAdd)} className="text-xs font-medium text-[#3B82F6]">+ 添加</button>
+    <div className={embedded ? "flex flex-col gap-2.5 min-h-0" : "px-4 pb-3"}>
+      <div className="flex items-center justify-between mb-2.5">
+        <span className="section-title">自选</span>
+        <button onClick={() => setShowAdd(!showAdd)} className="text-xs font-semibold text-[var(--gold)] hover:text-[var(--gold-bright)] transition-colors">+ 添加</button>
       </div>
 
       {showAdd && (
-        <div className="flex gap-2 mb-2">
+        <div className="flex gap-2 mb-2.5">
           <input
-            className="flex-1 bg-[#1A2129] border border-[#242B33] rounded-md px-3 py-1.5 text-xs text-[#F0F2F5] outline-none placeholder:text-[#4D545C]"
+            className="field"
             placeholder="输入代码或名称，如 sh600519、茅台"
             value={code}
             onChange={(e) => setCode(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addStock()}
           />
-          <button onClick={addStock} className="px-3 py-1.5 bg-[#3B82F6] text-white text-xs rounded-md font-medium">确认</button>
+          <button onClick={addStock} className="btn-gold shrink-0">确认</button>
         </div>
       )}
 
-      <div className="flex flex-col gap-1.5 max-h-[120px] lg:max-h-[50vh] overflow-y-auto scrollbar-hide">
+      <div className="flex flex-col gap-1.5 max-h-[160px] lg:max-h-[58vh] overflow-y-auto scrollbar-hide">
         {all.map((s) => {
           const d = prices[s.symbol]
           let priceStr = '--', changeStr = '--', up = true
@@ -105,27 +104,24 @@ export default function Watchlist({ selected, onSelect, prices = {}, customStock
             changeStr = (c >= 0 ? '+' : '') + c.toFixed(2) + '%'
             up = c >= 0
           }
+          const isSel = selected === s.symbol
           return (
             <button
               key={s.symbol}
               onClick={() => onSelect({ symbol: s.symbol, name: s.name })}
-              className={`flex items-center rounded-lg px-3 py-2 text-left transition-colors ${
-                selected === s.symbol ? 'bg-[#1A2A3F] ring-1 ring-[#3B82F6]' : 'bg-[#12161C]'
-              }`}
+              className={`flex items-center rounded-xl px-3 py-2.5 text-left transition-all ${isSel ? 'bg-[var(--gold-soft)] border border-[rgba(232,176,75,0.30)]' : 'bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--surface-2)]'}`}
             >
-              <div className="flex flex-col gap-0.5">
-                <span className="text-[13px] font-semibold text-[#F0F2F5]">{d?.name || s.name}</span>
-                <span className="text-[11px] text-[#8D949E]">{s.symbol}</span>
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <span className="text-[13px] font-semibold text-[var(--text)] truncate">{d?.name || s.name}</span>
+                <span className="text-[11px] text-[var(--text-2)]">{s.symbol}</span>
               </div>
               <div className="flex-1" />
               <div className="flex flex-col items-end gap-0.5">
-                <span className="text-[13px] font-semibold text-[#F0F2F5]">{priceStr}</span>
-                <span className={`text-[11px] font-medium ${up ? 'text-[#EF4444]' : 'text-[#22C55E]'}`}>
-                  {changeStr}
-                </span>
+                <span className="text-[13px] font-semibold text-[var(--text)] num">{priceStr}</span>
+                <span className={`text-[11px] font-medium num ${up ? 't-up' : 't-down'}`}>{changeStr}</span>
               </div>
               {customStocks.find(cs => cs.symbol === s.symbol) && (
-                <button onClick={e => { e.stopPropagation(); e.preventDefault(); onRemoveStock?.(s) }} className="ml-1 text-[#4D545C] hover:text-red-400"><X size={14} /></button>
+                <button onClick={e => { e.stopPropagation(); e.preventDefault(); onRemoveStock?.(s) }} className="ml-1.5 text-[var(--text-3)] hover:text-[var(--up)] transition-colors"><X size={14} /></button>
               )}
             </button>
           )

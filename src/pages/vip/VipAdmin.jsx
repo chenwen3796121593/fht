@@ -39,45 +39,45 @@ export default function VipAdmin({
   }
 
   return (
-    <div className="bg-[#0A0F14] h-full overflow-y-auto">
+    <div className="bg-[var(--bg)] h-full overflow-y-auto scroll-thin mx-auto w-full max-w-[760px] lg:max-w-[920px]">
 
       {/* Strategy editor */}
-      <div className="px-4 pt-4 pb-3">
-        <div className="bg-[#12161C] border border-[#3B82F6]/30 rounded-xl p-4 flex flex-col gap-3">
-          <span className="text-xs font-semibold text-[#F0F2F5]">今日策略</span>
-          <textarea className="bg-[#1A2129] border border-[#242B33] rounded-md px-3 py-2 text-sm text-[#F0F2F5] outline-none placeholder:text-[#4D545C] resize-none h-32" placeholder="写下今日交易策略..." value={strategyDraft} onChange={e => setStrategyDraft(e.target.value)} />
-          <button onClick={onSave} disabled={savingStrat || !strategyDraft.trim()} className="py-2 rounded-md bg-[#3B82F6] text-white text-sm font-bold disabled:opacity-40">{savingStrat ? '发布中...' : '发布策略'}</button>
-          {statusMsg && <div className={`text-xs font-medium text-center ${statusMsg.startsWith('✅') ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>{statusMsg}</div>}
+      <div className="px-4 md:px-6 pt-4 pb-3">
+        <div className="panel p-4 flex flex-col gap-3 border-[rgba(232,176,75,0.25)]">
+          <span className="section-title">今日策略</span>
+          <textarea className="field resize-none h-32" placeholder="写下今日交易策略..." value={strategyDraft} onChange={e => setStrategyDraft(e.target.value)} />
+          <button onClick={onSave} disabled={savingStrat || !strategyDraft.trim()} className="btn-gold disabled:opacity-40">{savingStrat ? '发布中...' : '发布策略'}</button>
+          {statusMsg && <div className={`text-xs font-medium text-center ${statusMsg.startsWith('✅') ? 'text-[var(--down)]' : 'text-[var(--up)]'}`}>{statusMsg}</div>}
         </div>
       </div>
 
       {/* Application management */}
-      <div className="px-4 pb-2 flex items-center justify-between">
-        <span className="text-sm font-bold text-[#F0F2F5]">申请管理</span>
-        <button onClick={handleLogout} className="text-xs text-[#4D545C] hover:text-[#EF4444]">退出</button>
+      <div className="px-4 md:px-6 pb-2 flex items-center justify-between">
+        <span className="text-sm font-bold text-[var(--text)]">申请管理</span>
+        <button onClick={handleLogout} className="text-xs text-[var(--text-3)] hover:text-[var(--up)] transition-colors">退出</button>
       </div>
-      <div className="px-4 pb-2 flex items-center gap-2">
-        <button onClick={handleRefresh} disabled={loadingApps} className="py-1.5 px-3 rounded-md bg-[#1A2129] text-[#8D949E] text-xs font-medium hover:bg-[#242B33]">{loadingApps ? '刷新中...' : '刷新'}</button>
-        <span className="text-[10px] text-[#4D545C]">{applications.length} 条记录</span>
+      <div className="px-4 md:px-6 pb-2 flex items-center gap-2">
+        <button onClick={handleRefresh} disabled={loadingApps} className="btn-ghost py-1.5 px-3 text-xs disabled:opacity-40">{loadingApps ? '刷新中...' : '刷新'}</button>
+        <span className="text-[10px] text-[var(--text-3)]">{applications.length} 条记录</span>
       </div>
-      <div className="px-4 flex flex-col gap-2 pb-8">
-        {!loadingApps && applications.length === 0 && <div className="text-center text-[#4D545C] text-xs py-6">暂无申请</div>}
+      <div className="px-4 md:px-6 flex flex-col gap-2 pb-8">
+        {!loadingApps && applications.length === 0 && <div className="text-center text-[var(--text-3)] text-xs py-6">暂无申请</div>}
         {applications.map(app => (
-          <div key={app.id} className="bg-[#12161C] rounded-lg p-3.5 flex items-center justify-between">
+          <div key={app.id} className="panel p-3.5 flex items-center justify-between">
             <div>
-              <div className="text-sm text-[#F0F2F5]">{app.phone}</div>
-              {app.reason && <div className="text-[11px] text-[#6B7280] mt-0.5">{app.reason}</div>}
-              <div className="text-[10px] text-[#4D545C] mt-1">
+              <div className="text-sm text-[var(--text)]">{app.phone}</div>
+              {app.reason && <div className="text-[11px] text-[var(--text-2)] mt-0.5">{app.reason}</div>}
+              <div className="text-[10px] text-[var(--text-3)] mt-1">
                 {new Date(app.created_at).toLocaleDateString('zh-CN')}
-                <span className={`ml-2 ${app.status === 'pending' ? 'text-[#3B82F6]' : app.status === 'approved' ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>
+                <span className={`ml-2 ${app.status === 'pending' ? 'text-[var(--gold)]' : app.status === 'approved' ? 'text-[var(--down)]' : 'text-[var(--up)]'}`}>
                   {app.status === 'pending' ? '待审核' : app.status === 'approved' ? '已通过' : '已拒绝'}
                 </span>
               </div>
             </div>
             {app.status === 'pending' && (
               <div className="flex gap-2">
-                <button onClick={() => onApprove(app)} className="w-8 h-8 rounded-lg flex items-center justify-center bg-[#22C55E]/20 text-[#22C55E] hover:bg-[#22C55E]/30"><Check size={16}/></button>
-                <button onClick={() => onReject(app)} className="w-8 h-8 rounded-lg flex items-center justify-center bg-[#EF4444]/20 text-[#EF4444] hover:bg-[#EF4444]/30"><X size={16}/></button>
+                <button onClick={() => onApprove(app)} className="w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--down-soft)] text-[var(--down)] hover:bg-[var(--down)] hover:text-white transition-colors"><Check size={16}/></button>
+                <button onClick={() => onReject(app)} className="w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--up-soft)] text-[var(--up)] hover:bg-[var(--up)] hover:text-white transition-colors"><X size={16}/></button>
               </div>
             )}
           </div>

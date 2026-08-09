@@ -1,14 +1,229 @@
 @import "tailwindcss";
 
-body {
-  margin: 0;
-  background: #0A0F14;
-  color: #F0F2F5;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+/* ============================================================
+   烽火台 TradeBoard · 设计系统 (高级暗色金融 · 金/琥珀)
+   仅改动视觉与排版，数据逻辑、接口、状态保持不变。
+   ============================================================ */
+
+:root {
+  /* 背景层级 */
+  --bg:           #0A0C10;
+  --bg-elev:      #0E1117;
+  --surface:      #141921;   /* 卡片 */
+  --surface-2:    #1A212B;   /* 内嵌 / hover */
+  --surface-3:    #222A35;
+
+  /* 描边 */
+  --border:       #232B36;
+  --border-soft:  #1A212A;
+  --border-strong:#2E3845;
+
+  /* 文字 */
+  --text:         #ECEEF2;
+  --text-2:       #98A1AD;   /* 次要 */
+  --text-3:       #5C6573;   /* 弱化 */
+
+  /* 品牌主色 · 金/琥珀 */
+  --gold:         #E8B04B;
+  --gold-bright:  #F8D083;
+  --gold-dim:     #B07F2E;
+  --gold-glow:    rgba(232,176,75,0.16);
+  --gold-soft:    rgba(232,176,75,0.10);
+
+  /* 涨跌（中国习惯：涨红 跌绿） */
+  --up:           #F2554F;
+  --up-soft:      rgba(242,85,79,0.14);
+  --down:         #25C285;
+  --down-soft:    rgba(37,194,133,0.14);
+
+  /* 圆角 & 阴影 */
+  --radius-sm: 10px;
+  --radius:    16px;
+  --radius-lg: 22px;
+  --shadow:    0 1px 0 rgba(255,255,255,0.03) inset, 0 10px 30px rgba(0,0,0,0.40);
+  --shadow-sm: 0 1px 0 rgba(255,255,255,0.03) inset, 0 4px 14px rgba(0,0,0,0.30);
+  --shadow-lg: 0 1px 0 rgba(255,255,255,0.04) inset, 0 24px 60px rgba(0,0,0,0.55);
+
+  /* 布局容器 & 侧边栏宽度 */
+  --content-max: 1600px;
+  --sidebar-w: 72px;
+  --sidebar-w-lg: 88px;
+
+  /* 排版缩放（专业层级） */
+  --fs-display: clamp(22px, 1.7vw, 30px);
+  --fs-h1: 18px;
+  --fs-h2: 15px;
+  --fs-lead: 13px;
+
+  color-scheme: dark;
 }
 
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "cv11", "ss01", "tnum";
+  letter-spacing: 0.1px;
+  line-height: 1.5;
+}
+
+/* 环境光晕：顶部金色辉光，营造高级质感 */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(1100px 520px at 50% -12%, rgba(232,176,75,0.10), transparent 60%),
+    radial-gradient(700px 360px at 100% -5%, rgba(232,176,75,0.045), transparent 55%);
+  pointer-events: none;
+  z-index: 0;
+}
+#root { position: relative; z-index: 1; }
+
+/* 全局微交互：焦点环（键盘可达性）/ 金色选区 / 平滑滚动 */
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 6px; }
+::selection { background: var(--gold-soft); color: var(--text); }
+html { scroll-behavior: smooth; }
+
+/* 数字等宽对齐 */
+.num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+/* ---------- 可复用组件类 ---------- */
+/* 卡片：顶部细高光，营造质感层次（不增成本） */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,0.045);
+}
+/* 玻璃卡片（轻透） */
+.glass {
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: var(--radius);
+  backdrop-filter: blur(8px);
+}
+/* 内嵌条 */
+.inset { background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: var(--radius-sm); }
+
+/* 分割线（渐隐） */
+.divider { height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent); }
+.divider-v { width: 1px; background: linear-gradient(180deg, transparent, var(--border), transparent); }
+
+/* 标签 / 分段控件 通用 */
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 6px 12px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; line-height: 1;
+  background: var(--surface-2); color: var(--text-2);
+  border: 1px solid transparent; transition: all .15s ease;
+  cursor: pointer; white-space: nowrap;
+}
+.chip:hover { color: var(--text); background: var(--surface-3); }
+.chip-active {
+  background: var(--gold); color: #0A0C10; border-color: transparent;
+  box-shadow: 0 4px 14px var(--gold-glow);
+}
+.chip-active:hover { color: #0A0C10; background: var(--gold-bright); }
+/* 次强调态（非金，用于多选项） */
+.chip-soft { color: var(--text); background: var(--gold-soft); border-color: rgba(232,176,75,0.25); }
+
+/* 主按钮（金） */
+.btn-gold {
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  padding: 9px 14px; border-radius: var(--radius-sm);
+  background: var(--gold); color: #0A0C10; font-weight: 600; font-size: 13px;
+  border: none; cursor: pointer; transition: all .15s ease;
+  box-shadow: 0 6px 18px var(--gold-glow);
+}
+.btn-gold:hover { background: var(--gold-bright); }
+.btn-gold:active { transform: scale(0.97); }
+.btn-gold:disabled { opacity: 0.45; box-shadow: none; cursor: not-allowed; }
+
+/* 次按钮（描边） */
+.btn-ghost {
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  padding: 9px 14px; border-radius: var(--radius-sm);
+  background: var(--surface-2); color: var(--text-2);
+  border: 1px solid var(--border); cursor: pointer; transition: all .15s ease; font-size:13px; font-weight:500;
+}
+.btn-ghost:hover { color: var(--text); background: var(--surface-3); }
+
+/* 输入框 */
+.field {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 9px 12px;
+  color: var(--text); font-size: 13px; outline: none; transition: all .15s ease;
+  width: 100%;
+}
+.field::placeholder { color: var(--text-3); }
+.field:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-soft); }
+
+/* 标题装饰：金线 + 字 */
+.section-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 700; color: var(--text); letter-spacing: 0.01em;
+}
+.section-title::before {
+  content: ""; width: 3px; height: 13px; border-radius: 2px;
+  background: linear-gradient(var(--gold-bright), var(--gold-dim));
+}
+
+/* 涨跌字色工具（保留中国习惯） */
+.t-up { color: var(--up); }
+.t-down { color: var(--down); }
+.t-muted { color: var(--text-3); }
+.t-2 { color: var(--text-2); }
+
+/* 滚动条隐藏 */
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* 细滚动条（桌面） */
+.scroll-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+.scroll-thin::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 99px; }
+.scroll-thin::-webkit-scrollbar-track { background: transparent; }
+
+/* 多行截断 */
+.line-clamp-2 {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+/* ---------- 排版层级（专业金融质感） ---------- */
+/* 限宽居中容器：大屏内容不无限拉伸 */
+.shell { width: 100%; max-width: var(--content-max); margin-left: auto; margin-right: auto; }
+
+/* 小标签（金/大写/字距） */
+.eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--gold);
+}
+/* 大标题 */
+.display { font-size: var(--fs-display); font-weight: 800; letter-spacing: -0.02em; line-height: 1.08; color: var(--text); }
+.h1 { font-size: var(--fs-h1); font-weight: 700; letter-spacing: -0.01em; line-height: 1.25; color: var(--text); }
+.h2 { font-size: var(--fs-h2); font-weight: 700; line-height: 1.3; color: var(--text); }
+/* 正文/说明 */
+.lead { font-size: var(--fs-lead); line-height: 1.65; color: var(--text-2); }
+/* KPI 数值 */
+.kpi-value { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; color: var(--text); }
+.kpi-label { font-size: 11px; font-weight: 500; color: var(--text-2); letter-spacing: 0.02em; }
+/* 卡片悬浮（专业微交互） */
+.panel-hover { transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease; }
+.panel-hover:hover { border-color: var(--border-strong); transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+
+/* 入场动效（轻量） */
+@keyframes fade-up { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.fade-up { animation: fade-up .35s ease both; }
+
+/* 桌面端：内容居中限宽，避免无限拉伸 */
+@media (min-width: 768px) {
+  .shell { padding-left: 0; padding-right: 0; }
+}
 
 @media (min-width: 640px) {
   #root { display: flex; justify-content: center; align-items: flex-start; min-height: 100dvh; }

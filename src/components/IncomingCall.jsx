@@ -38,21 +38,21 @@ export default function IncomingCall({ from, onAccept, onDecline }) {
   }, [])
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-[#0A0F14] gap-6">
-      <div className="text-[#8D949E] text-sm">视频通话邀请</div>
-      <div className="text-[#F0F2F5] text-2xl font-bold">{from}</div>
-      <div className="text-[#4D545C] text-xs animate-pulse">邀请你进行视频通话...</div>
+    <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-[var(--bg)] gap-6">
+      <div className="text-[var(--text-2)] text-sm">视频通话邀请</div>
+      <div className="text-[var(--text)] text-2xl font-bold">{from}</div>
+      <div className="text-[var(--text-3)] text-xs animate-pulse">邀请你进行视频通话...</div>
       <div className="flex gap-6 mt-4">
         <button onClick={onDecline}
-          className="w-14 h-14 rounded-full bg-[#EF4444] flex items-center justify-center hover:bg-[#DC2626] transition-colors active:scale-95">
+          className="w-14 h-14 rounded-full bg-[var(--up)] flex items-center justify-center hover:opacity-80 transition-opacity active:scale-95">
           <PhoneOff size={24} className="text-white" />
         </button>
         <button onClick={onAccept}
-          className="w-14 h-14 rounded-full bg-[#22C55E] flex items-center justify-center hover:bg-[#16A34A] transition-colors active:scale-95">
+          className="w-14 h-14 rounded-full bg-[var(--down)] flex items-center justify-center hover:opacity-80 transition-opacity active:scale-95">
           <Phone size={24} className="text-white" />
         </button>
       </div>
-      <div className="text-[10px] text-[#4D545C] mt-2">拒绝 · 接听</div>
+      <div className="text-[10px] text-[var(--text-3)] mt-2">拒绝 · 接听</div>
     </div>
   )
 }

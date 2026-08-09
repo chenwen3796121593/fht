@@ -64,12 +64,10 @@ export default function VipPage() {
       }
       const client = await getSB()
       const hashed = await hashPwd(password.trim())
-      // Try hashed first, then plaintext (legacy)
       let { data, error } = await client.from('vip_users').select('*').eq('username', username.trim()).eq('password', hashed).single()
       if (error || !data) {
         const legacy = await client.from('vip_users').select('*').eq('username', username.trim()).eq('password', password.trim()).single()
         if (!legacy.error && legacy.data) {
-          // Migrate to hashed
           await client.from('vip_users').update({ password: hashed }).eq('username', username.trim())
           data = legacy.data
         }
@@ -111,12 +109,16 @@ export default function VipPage() {
   }
 
   if (loggedIn && isAdmin) return <VipAdmin strategyDraft={strategyDraft} setStrategyDraft={setStrategyDraft} savingStrat={savingStrat} handleSaveStrategy={handleSaveStrategy} applications={applications} loadingApps={loadingApps} handleRefresh={handleRefresh} handleApprove={handleApprove} handleReject={handleReject} handleLogout={handleLogout} />
-  if (loggedIn) return <VipMember currentUser={currentUser} strategy={strategy} handleLogout={handleLogout} />
+  if (loggedIn) return <div className="mx-auto w-full max-w-[760px] lg:max-w-[940px]"><VipMember currentUser={currentUser} strategy={strategy} handleLogout={handleLogout} /></div>
 
   return (
-    <div className="bg-[#0A0F14] h-full overflow-y-auto">
-      <VipHome phone={phone} setPhone={setPhone} reason={reason} setReason={setReason} submitted={submitted} submitting={submitting} handleApply={handleApply} />
-      <div className="px-4 pb-8"><VipLogin username={username} setUsername={setUsername} password={password} setPassword={setPassword} loginErr={loginErr} handleLogin={handleLogin} /></div>
+    <div className="bg-[var(--bg)] h-full overflow-y-auto scroll-thin">
+      <div className="mx-auto w-full max-w-[680px] lg:max-w-[960px] lg:px-6 px-4 pb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-5">
+          <VipHome phone={phone} setPhone={setPhone} reason={reason} setReason={setReason} submitted={submitted} submitting={submitting} handleApply={handleApply} />
+          <VipLogin username={username} setUsername={setUsername} password={password} setPassword={setPassword} loginErr={loginErr} handleLogin={handleLogin} />
+        </div>
+      </div>
     </div>
   )
 }

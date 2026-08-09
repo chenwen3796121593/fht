@@ -1,7 +1,6 @@
 import { useState, Suspense, lazy, useEffect } from 'react'
 import { AppProvider, useApp } from './context/AppContext.jsx'
 import HomePage from './pages/HomePage'
-import NewsPage from './pages/NewsPage'
 import AlertsPage from './pages/AlertsPage'
 import CommoditiesPage from './pages/CommoditiesPage'
 import Layout from './components/Layout'
@@ -22,7 +21,7 @@ function usePreload() {
 }
 
 function Loading() {
-  return <div className="flex-1 flex items-center justify-center"><span className="text-sm text-[#4D545C]">加载中...</span></div>
+  return <div className="flex-1 flex items-center justify-center"><span className="text-sm text-[var(--text-3)]">加载中...</span></div>
 }
 
 function PageRouter() {
@@ -31,7 +30,6 @@ function PageRouter() {
     <Layout>
       {currentPage === 'home' && <HomePage />}
       {currentPage === 'dashboard' && <Suspense fallback={<Loading />}><Dashboard /></Suspense>}
-      {currentPage === 'news' && <NewsPage />}
       {currentPage === 'chat' && <Suspense fallback={<Loading />}><ChatPage /></Suspense>}
       {currentPage === 'alerts' && <AlertsPage />}
       {currentPage === 'commodities' && <CommoditiesPage />}

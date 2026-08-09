@@ -8,18 +8,26 @@ export default function CommoditiesPage() {
   const [tab, setTab] = useState('metals')
 
   return (
-    <div className="bg-[#0A0F14] h-full overflow-y-auto">
+    <div className="bg-[var(--bg)] h-full overflow-y-auto scroll-thin">
       <TopBar active="commodities" />
-      <div className="px-4 pt-2 pb-1 flex gap-1.5 sticky top-[52px] bg-[#0A0F14] z-10">
-        <button onClick={() => setTab('metals')} className={`px-3 py-1.5 rounded-md text-xs font-medium ${tab==='metals' ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>贵金属</button>
-        <button onClick={() => setTab('vip')} className={`px-3 py-1.5 rounded-md text-xs font-medium ${tab==='vip' ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>VIP</button>
-      </div>
+      <div className="px-4 md:px-6">
+        <div className="py-3 md:py-4 flex items-end justify-between fade-up">
+          <div>
+            <div className="eyebrow hidden md:block">Commodities</div>
+            <h1 className="h1 mt-0.5">大宗商品</h1>
+          </div>
+        </div>
+        <div className="flex gap-1.5 sticky top-[57px] md:top-0 bg-[var(--bg)]/90 backdrop-blur z-10 px-4 md:px-6 pt-2 pb-2 -mx-4 md:-mx-6">
+          <button onClick={() => setTab('metals')} className={`chip ${tab==='metals' ? 'chip-active' : ''}`}>贵金属</button>
+          <button onClick={() => setTab('vip')} className={`chip ${tab==='vip' ? 'chip-active' : ''}`}>VIP</button>
+        </div>
 
-      {tab === 'metals' ? <MetalsPage hideTopBar /> : (
-        <Suspense fallback={<div className="text-center text-[#4D545C] text-sm py-12">加载中...</div>}>
-          <VipModule />
-        </Suspense>
-      )}
+        {tab === 'metals' ? <MetalsPage hideTopBar /> : (
+          <Suspense fallback={<div className="text-center text-[var(--text-3)] text-sm py-12">加载中...</div>}>
+            <VipModule />
+          </Suspense>
+        )}
+      </div>
     </div>
   )
 }

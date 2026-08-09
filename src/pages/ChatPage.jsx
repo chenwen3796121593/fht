@@ -29,13 +29,20 @@ function extractMention(text) {
 
 function JoinScreen({ nick, setNick, connected, onJoin }) {
   return (
-    <div className="bg-[#0A0F14] h-full flex flex-col">
+    <div className="bg-[var(--bg)] h-full flex flex-col">
       <TopBar active="chat" />
       <div className="flex-1 flex items-center justify-center">
-        <div className="flex flex-col gap-4 w-64">
-          <div className="text-center"><div className="text-xs text-[#8D949E] mt-1">{connected ? <><span className="inline-block w-2 h-2 rounded-full bg-[#22C55E] mr-1" />已连接</> : '连接中...'}</div></div>
-          <input className="bg-[#1A2129] rounded-lg px-4 py-3 text-sm text-[#F0F2F5] outline-none" placeholder="输入昵称" value={nick} onChange={e => setNick(e.target.value)} onKeyDown={e => e.key === 'Enter' && onJoin()} />
-          <button onClick={onJoin} disabled={!nick.trim()} className="bg-[#3B82F6] text-white py-3 rounded-lg font-semibold disabled:opacity-50">进入聊天室</button>
+        <div className="flex flex-col gap-4 w-72">
+          <div className="text-center">
+            <div className="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center bg-[var(--gold-soft)] border border-[rgba(232,176,75,0.25)]">
+              <MessageCircle size={26} className="text-[var(--gold)]" />
+            </div>
+            <div className="text-sm text-[var(--text-2)] mt-3">
+              {connected ? <><span className="inline-block w-2 h-2 rounded-full bg-[var(--down)] mr-1.5 align-middle" />已连接</> : '连接中...'}
+            </div>
+          </div>
+          <input className="field text-center" placeholder="输入昵称" value={nick} onChange={e => setNick(e.target.value)} onKeyDown={e => e.key === 'Enter' && onJoin()} />
+          <button onClick={onJoin} disabled={!nick.trim()} className="btn-gold disabled:opacity-50">进入聊天室</button>
         </div>
       </div>
     </div>
@@ -61,11 +68,7 @@ export default function ChatPage() {
   const sbRef = useRef(null)
 
   useEffect(() => {
-    // Clear mention badge on enter
     localStorage.setItem('fh_mention_badge', '0')
-
-    // Instant cache
-    // Auto-clear cache from previous days
     if (localStorage.getItem('fh_cache_ver') !== '3') {
       localStorage.removeItem('fh_chat_cache')
       localStorage.setItem('fh_cache_ver', '3')
@@ -80,7 +83,6 @@ export default function ChatPage() {
       sbRef.current = sb
       setConnected(true)
 
-      // ---- Presence tracking ----
       const presenceChannel = sb.channel('online-users', {
         config: { presence: { key: nick } }
       })
@@ -94,7 +96,6 @@ export default function ChatPage() {
         }
       })
 
-      // Fetch recent 24h active users for @mention list
       try {
         const dayAgo = new Date(Date.now() - 86400000).toISOString()
         const { data: recentData } = await sb.from('messages').select('username').gte('created_at', dayAgo).order('created_at', { ascending: false }).limit(100)
@@ -115,16 +116,12 @@ export default function ChatPage() {
       try {
         sb.channel('chat-room').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
           const m = payload.new
-
-          // Badge if mentioned (not self-send)
           if (m.mentioned_user === nick && m.username !== nick) {
             try { const n = parseInt(localStorage.getItem('fh_mention_badge') || '0'); localStorage.setItem('fh_mention_badge', String(n + 1)) } catch {}
           }
-
           setMsgs(prev => {
             if (prev.find(p => p.id === m.id)) return prev
             const cleaned = prev.filter(p => !(String(p.id).startsWith('tmp_') && p.user === m.username))
-            // Detect video room invite from text (starts with 📹)
             const txt = m.text || ''
             const msg = { id: m.id, user: m.username, text: txt, voice_url: m.voice_url, mentioned_user: m.mentioned_user, time: fmtTime(m.created_at) }
             if (txt.startsWith('📹')) {
@@ -153,7 +150,6 @@ export default function ChatPage() {
       const client = await getSB()
       let { error } = await client.from('messages').insert({ username: nick, text: t, ...(mentioned ? { mentioned_user: mentioned } : {}) })
       if (error && mentioned) {
-        // Retry without mentioned_user if column doesn't exist
         const retry = await client.from('messages').insert({ username: nick, text: t })
         error = retry.error
       }
@@ -170,7 +166,6 @@ export default function ChatPage() {
   const startVideo = async () => {
     const roomId = Math.random().toString(36).slice(2, 8)
     setVideoRoom(roomId)
-    // Insert to Supabase — subscription will deliver to everyone (including self)
     try {
       const client = await getSB()
       await client.from('messages').insert({ username: nick, text: '📹 视频通话 #' + roomId })
@@ -221,28 +216,28 @@ export default function ChatPage() {
   if (!joined) return <JoinScreen nick={nick} setNick={setNick} connected={connected} onJoin={join} />
 
   return (
-    <div className="bg-[#0A0F14] flex-1 min-h-0 overflow-hidden flex flex-col">
+    <div className="bg-[var(--bg)] flex-1 min-h-0 overflow-hidden flex flex-col">
       <TopBar active="chat" />
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+      <div className="flex-1 overflow-y-auto scroll-thin px-4 py-3 space-y-2.5 mx-auto max-w-[1080px] w-full">
         {msgs.map((m) => {
           const isMentioned = m.mentioned_user === nick
           return (
             <div key={m.id} className={`flex ${m.user === nick ? 'justify-end' : 'justify-start'}`}>
-              <div className="max-w-[75%] flex flex-col">
-                {m.user !== nick && <span className="text-[10px] text-[#8D949E] mb-0.5 ml-1">{m.user}</span>}
+              <div className="max-w-[78%] flex flex-col">
+                {m.user !== nick && <span className="text-[10px] text-[var(--text-2)] mb-0.5 ml-1">{m.user}</span>}
                 {m.voice_url ? (
-                  <audio src={m.voice_url} controls className={`h-8 w-[180px] ${isMentioned ? 'ring-1 ring-[#3B82F6] rounded' : ''}`} preload="metadata" />
+                  <audio src={m.voice_url} controls className={`h-9 w-[200px] ${isMentioned ? 'ring-1 ring-[var(--gold)] rounded' : ''}`} preload="metadata" />
                 ) : m.isVideoLink || (m.text || '').startsWith('📹') ? (
-                  <div className={`px-3 py-2 rounded-xl text-sm bg-[#1A2129] text-[#E5E7EB] rounded-bl-sm`}>
+                  <div className="px-3 py-2.5 rounded-2xl text-sm bg-[var(--surface-2)] text-[var(--text)] rounded-bl-md">
                     <div className="flex items-center gap-2">
                       <span>{(m.text || '').replace('📹 ', '')}</span>
-                      <button onClick={() => joinVideoRoom((m.videoRoomId || (m.text || '').split('#').pop()))} className="text-[10px] px-2 py-0.5 rounded bg-[#22C55E] text-white font-medium hover:opacity-80 transition-opacity">加入</button>
+                      <button onClick={() => joinVideoRoom((m.videoRoomId || (m.text || '').split('#').pop()))} className="text-[10px] px-2.5 py-1 rounded-full bg-[var(--down)] text-white font-semibold hover:opacity-80 transition-opacity">加入</button>
                     </div>
                   </div>
                 ) : (
-                  <div className={`px-3 py-2 rounded-xl text-sm ${m.user === nick ? 'bg-[#3B82F6] text-white rounded-br-sm' : isMentioned ? 'bg-[#1A2129] text-[#E5E7EB] rounded-bl-sm border-l-2 border-[#3B82F6]' : 'bg-[#1A2129] text-[#E5E7EB] rounded-bl-sm'}`}>{m.text}</div>
+                  <div className={`px-3 py-2.5 rounded-2xl text-sm ${m.user === nick ? 'bg-[var(--gold)] text-[#0A0C10] rounded-br-md' : isMentioned ? 'bg-[var(--surface-2)] text-[var(--text)] rounded-bl-md border-l-2 border-[var(--gold)]' : 'bg-[var(--surface-2)] text-[var(--text)] rounded-bl-md'}`}>{m.text}</div>
                 )}
-                <span className="text-[9px] text-[#4D545C] mt-0.5 mx-1">{m.time}</span>
+                <span className="text-[9px] text-[var(--text-3)] mt-0.5 mx-1">{m.time}</span>
               </div>
             </div>
           )
@@ -250,44 +245,42 @@ export default function ChatPage() {
         <div ref={msgEndRef} />
       </div>
       {videoRoom && <VideoRoom roomId={videoRoom} nick={nick} onClose={() => setVideoRoom(null)} />}
-      <div className="bg-[#0A0F14] border-t border-[#242B33] px-2 pt-1.5 pb-3 flex gap-0.5 relative">
-        <button onClick={toggleRecord} className={`h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${recording ? 'bg-[#EF4444] text-white w-[60px] gap-0.5' : 'bg-[#1A2129] text-[#8D949E] w-8'}`}>
-          {recording ? <><span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" /><span className="text-[9px]">停止</span></> : <Mic size={14} />}
+      <div className="bg-[var(--bg-elev)]/95 backdrop-blur-xl border-t border-[var(--border-soft)] px-2 pt-2 pb-3 flex gap-1 relative mx-auto max-w-[1080px] w-full">
+        <button onClick={toggleRecord} className={`h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${recording ? 'bg-[var(--up)] text-white w-[64px] gap-1' : 'bg-[var(--surface-2)] text-[var(--text-2)] w-9 hover:text-[var(--text)]'}`}>
+          {recording ? <><span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" /><span className="text-[9px]">停止</span></> : <Mic size={15} />}
         </button>
         <button onClick={startVideo}
-          className="h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-[#1A2129] text-[#8D949E] hover:text-[#F0F2F5] transition-colors"><Video size={14} /></button>
-        <input ref={inputRef} className="flex-1 min-w-0 bg-[#1A2129] rounded-lg px-2 py-2 text-xs text-[#F0F2F5] outline-none" placeholder="输入文字..." value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { send(); setShowEmoji(false); setShowAtList(false) } }} onFocus={() => { setShowEmoji(false); setShowAtList(false) }} />
-        <button onClick={() => { send(); setShowEmoji(false); setShowAtList(false) }} disabled={!input.trim()} className="h-8 px-2 bg-[#3B82F6] text-white rounded-lg text-xs font-medium disabled:opacity-50 flex-shrink-0 flex items-center justify-center"><Send size={14} /></button>
-        <button onClick={() => setShowEmoji(!showEmoji)} className={`h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${showEmoji ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}><Smile size={14} /></button>
+          className="h-9 w-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-[var(--surface-2)] text-[var(--text-2)] hover:text-[var(--text)] transition-colors"><Video size={15} /></button>
+        <input ref={inputRef} className="field flex-1 min-w-0 h-9 py-0" placeholder="输入文字..." value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { send(); setShowEmoji(false); setShowAtList(false) } }} onFocus={() => { setShowEmoji(false); setShowAtList(false) }} />
+        <button onClick={() => { send(); setShowEmoji(false); setShowAtList(false) }} disabled={!input.trim()} className="btn-gold h-9 px-3 disabled:opacity-50 flex-shrink-0"><Send size={15} /></button>
+        <button onClick={() => setShowEmoji(!showEmoji)} className={`h-9 w-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${showEmoji ? 'bg-[var(--gold)] text-[#0A0C10]' : 'bg-[var(--surface-2)] text-[var(--text-2)] hover:text-[var(--text)]'}`}><Smile size={15} /></button>
         <button onClick={() => { setShowAtList(!showAtList); setShowEmoji(false) }}
-          className={`h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${showAtList ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}><AtSign size={14} /></button>
+          className={`h-9 w-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${showAtList ? 'bg-[var(--gold)] text-[#0A0C10]' : 'bg-[var(--surface-2)] text-[var(--text-2)] hover:text-[var(--text)]'}`}><AtSign size={15} /></button>
 
-        {/* Emoji panel */}
         {showEmoji && (
-          <div className="absolute bottom-11 left-12 bg-[#1A2129] border border-[#242B33] rounded-xl p-2.5 shadow-2xl z-20">
+          <div className="absolute bottom-12 left-12 panel p-2.5 shadow-2xl z-20">
             <div className="grid grid-cols-8 gap-1">
-              {EMOJIS.map((em, i) => { const Icon = em.icon; return <button key={i} onClick={() => { setInput(prev => prev + em.label); setShowEmoji(false) }} className="w-8 h-8 flex items-center justify-center text-[#8D949E] hover:text-[#F0F2F5] hover:bg-[#242B33] rounded-lg transition-colors" title={em.label}><Icon size={16} /></button> })}
+              {EMOJIS.map((em, i) => { const Icon = em.icon; return <button key={i} onClick={() => { setInput(prev => prev + em.label); setShowEmoji(false) }} className="w-8 h-8 flex items-center justify-center text-[var(--text-2)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] rounded-lg transition-colors" title={em.label}><Icon size={16} /></button> })}
             </div>
           </div>
         )}
 
-        {/* @mention user list */}
         {showAtList && (() => {
           const allUsers = [...new Set([...onlineUsers, ...recentUsers])].filter(u => u !== nick)
           return (
-            <div className="absolute bottom-11 left-[80px] bg-[#1A2129] border border-[#242B33] rounded-xl p-2 shadow-2xl z-20 min-w-[120px] max-h-[200px] overflow-y-auto">
-              <div className="text-[10px] text-[#4D545C] mb-1.5 px-1">选择提醒对象</div>
-              {allUsers.length === 0 && <div className="text-xs text-[#4D545C] px-1 py-2">暂无用户</div>}
+            <div className="absolute bottom-12 left-[84px] panel p-2 shadow-2xl z-20 min-w-[130px] max-h-[220px] overflow-y-auto scrollbar-hide">
+              <div className="text-[10px] text-[var(--text-3)] mb-1.5 px-1">选择提醒对象</div>
+              {allUsers.length === 0 && <div className="text-xs text-[var(--text-3)] px-1 py-2">暂无用户</div>}
               {allUsers.map(u => {
                 const isOnline = onlineUsers.includes(u)
                 return (
-                  <div key={u} className="flex items-center hover:bg-[#242B33] rounded transition-colors">
+                  <div key={u} className="flex items-center hover:bg-[var(--surface-2)] rounded transition-colors">
                     <button onClick={() => insertAt(u)}
-                      className="flex-1 text-left px-2 py-1.5 rounded text-xs text-[#F0F2F5] flex items-center gap-2">
-                      <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-[#22C55E]' : 'bg-[#4D545C]'}`} />{u}
+                      className="flex-1 text-left px-2 py-1.5 rounded text-xs text-[var(--text)] flex items-center gap-2">
+                      <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-[var(--down)]' : 'bg-[var(--text-3)]'}`} />{u}
                     </button>
                     <button onClick={() => callAndOpen(u)}
-                      className="px-2 py-1.5 text-[#22C55E] hover:bg-[#3B82F6]/20 rounded"
+                      className="px-2 py-1.5 text-[var(--down)] hover:bg-[var(--down-soft)] rounded"
                       title="视频通话"><Phone size={13} /></button>
                   </div>
                 )

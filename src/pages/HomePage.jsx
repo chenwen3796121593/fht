@@ -3,19 +3,29 @@ import TopBar from '../components/TopBar'
 import MarketBar from '../components/MarketBar'
 import { useApp } from '../context/AppContext.jsx'
 import { SkeletonMarketCards, SkeletonHomeStats } from '../components/Skeleton.jsx'
-import { Activity, TrendingUp, Snowflake, Flame, BarChart3 } from 'lucide-react'
+import { Activity, TrendingUp, Snowflake, Flame, BarChart3, ArrowDownRight, ArrowUpRight } from 'lucide-react'
 
 const IndicatorsPanel = lazy(() => import('../components/IndicatorsPanel'))
 
 function Thermometer({ pct, ready }) {
-  const color = ready ? (pct > 0 ? '#EF4444' : pct < 0 ? '#22C55E' : '#F97316') : '#4D545C'
+  const color = ready ? (pct > 0 ? 'var(--up)' : pct < 0 ? 'var(--down)' : 'var(--gold)') : 'var(--text-3)'
   return (
-    <div className="flex items-center gap-1.5">
-      <Snowflake size={12} style={{ color }} />
-      <div className="flex-1 h-1.5 bg-[#1A2129] rounded-full overflow-hidden">
-        <div className="h-full rounded-full transition-all duration-1000" style={{ width: ready ? Math.max(5, Math.min(100, 50 + pct * 20)) + '%' : '50%', backgroundColor: color }} />
+    <div className="flex items-center gap-2">
+      <Snowflake size={13} style={{ color }} />
+      <div className="flex-1 h-2 bg-[var(--surface-2)] rounded-full overflow-hidden">
+        <div className="h-full rounded-full transition-all duration-1000" style={{ width: ready ? Math.max(5, Math.min(100, 50 + pct * 20)) + '%' : '50%', backgroundColor: color, boxShadow: `0 0 8px ${color}` }} />
       </div>
-      <Flame size={12} style={{ color }} />
+      <Flame size={13} style={{ color }} />
+    </div>
+  )
+}
+
+function StatBlock({ label, value, sub, className = '' }) {
+  return (
+    <div className={`panel p-3.5 flex flex-col gap-1 ${className}`}>
+      <span className="kpi-label">{label}</span>
+      <span className="kpi-value num leading-none">{value}</span>
+      {sub && <div className="text-[10px]">{sub}</div>}
     </div>
   )
 }
@@ -42,34 +52,31 @@ function SectorFlow() {
   const maxFlow = data?.length ? Math.max(...data.map(d => Math.abs(d.netFlow))) : 1
 
   return (
-    <div className="bg-[#12161C] border border-[#242B33] rounded-xl p-4">
+    <div className="panel p-4 h-full">
       <div className="flex items-center justify-between mb-3">
-        <div className="text-xs text-[#8D949E] flex items-center gap-1.5">
-          <TrendingUp size={14} className={tab === 'in' ? 'text-[#EF4444]' : 'text-[#8D949E]'} />
-          板块资金
-        </div>
-        <div className="flex gap-1">
-          <button onClick={() => setTab('in')} className={`px-2.5 py-1 rounded text-[11px] font-medium ${tab === 'in' ? 'bg-[#EF4444] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>流入 TOP</button>
-          <button onClick={() => setTab('out')} className={`px-2.5 py-1 rounded text-[11px] font-medium ${tab === 'out' ? 'bg-[#22C55E] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>流出 TOP</button>
+        <div className="section-title"><TrendingUp size={14} className="text-[var(--gold)]" />板块资金</div>
+        <div className="flex gap-1.5">
+          <button onClick={() => setTab('in')} className={`chip ${tab === 'in' ? 'chip-active' : ''}`}>流入 TOP</button>
+          <button onClick={() => setTab('out')} className={`chip ${tab === 'out' ? 'chip-active' : ''}`}>流出 TOP</button>
         </div>
       </div>
       {data && data.length > 0 ? (
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-2">
           {data.map((item, i) => {
             const name = item.name || '?'
             const flow = (item.netFlow || 0) / 1e8
             const barW = Math.max(3, Math.abs(flow) / (maxFlow / 1e8) * 100)
             const up = flow > 0
             return (
-              <div key={i} className="flex items-center gap-2 text-xs">
-                <span className="w-24 text-[#8D949E] truncate" title={name}>{name}</span>
-                <div className="flex-1 h-3 bg-[#1A2129] rounded-sm overflow-hidden">
-                  <div className="h-full rounded-sm" style={{ width: barW + '%', backgroundColor: up ? '#EF4444' : '#22C55E' }} />
+              <div key={i} className="flex items-center gap-2.5 text-xs">
+                <span className="w-20 text-[var(--text-2)] truncate" title={name}>{name}</span>
+                <div className="flex-1 h-2.5 bg-[var(--surface-2)] rounded-full overflow-hidden">
+                  <div className="h-full rounded-full" style={{ width: barW + '%', backgroundColor: up ? 'var(--up)' : 'var(--down)' }} />
                 </div>
-                <span className="w-16 text-right font-medium" style={{ color: up ? '#EF4444' : '#22C55E' }}>
+                <span className="w-16 text-right font-semibold num" style={{ color: up ? 'var(--up)' : 'var(--down)' }}>
                   {up ? '+' : ''}{flow.toFixed(1)}亿
                 </span>
-                <span className="w-12 text-right" style={{ color: (item.change||0) >= 0 ? '#EF4444' : '#22C55E' }}>
+                <span className="w-12 text-right num" style={{ color: (item.change||0) >= 0 ? 'var(--up)' : 'var(--down)' }}>
                   {(item.change||0) >= 0 ? '+' : ''}{(item.change||0).toFixed(1)}%
                 </span>
               </div>
@@ -77,7 +84,7 @@ function SectorFlow() {
           })}
         </div>
       ) : (
-        <div className="text-xs text-[#4D545C] py-4 text-center">加载中...</div>
+        <div className="text-xs text-[var(--text-3)] py-5 text-center">加载中...</div>
       )}
     </div>
   )
@@ -111,54 +118,72 @@ export default function HomePage() {
   }, [])
 
   return (
-    <div className="bg-[#0A0F14] h-full overflow-y-auto">
+    <div className="bg-[var(--bg)] h-full overflow-y-auto scroll-thin">
       <TopBar active="home" />
-      <div className="px-4 py-3 flex flex-col gap-3">
+      <div className="px-4 py-3 md:px-6 md:py-4 flex flex-col gap-3">
+        {/* 页面标题区 */}
+        <div className="flex items-end justify-between fade-up">
+          <div>
+            <div className="eyebrow hidden md:block">Market Overview</div>
+            <h1 className="h1 mt-0.5">市场概览</h1>
+          </div>
+          <div className="text-[11px] text-[var(--text-3)] num flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--down)] inline-block animate-pulse" />实时行情
+          </div>
+        </div>
+
         {isInitialLoad ? <SkeletonMarketCards /> : <MarketBar quotes={quotes} />}
 
-        {/* 子标签 */}
-        <div className="flex gap-1.5 sticky top-[52px] bg-[#0A0F14] z-10 pb-1">
-          <button onClick={() => setSubTab('sentiment')} className={`px-3 py-1.5 rounded-md text-xs font-medium ${subTab==='sentiment' ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}><Activity size={13} className="inline mr-1" />情绪</button>
-          <button onClick={() => setSubTab('indicators')} className={`px-3 py-1.5 rounded-md text-xs font-medium ${subTab==='indicators' ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}><BarChart3 size={13} className="inline mr-1" />指标</button>
+        {/* 子标签（桌面吸顶到 0） */}
+        <div className="flex gap-1.5 sticky top-[57px] md:top-0 bg-[var(--bg)]/90 backdrop-blur z-10 pb-1 pt-0.5 -mx-4 px-4 md:-mx-6 md:px-6">
+          <button onClick={() => setSubTab('sentiment')} className={`chip ${subTab==='sentiment' ? 'chip-active' : ''}`}><Activity size={13} />情绪</button>
+          <button onClick={() => setSubTab('indicators')} className={`chip ${subTab==='indicators' ? 'chip-active' : ''}`}><BarChart3 size={13} />指标</button>
         </div>
 
         {subTab === 'sentiment' ? (
           <>
             {isInitialLoad ? <SkeletonHomeStats /> : (
-              <div className="grid grid-cols-2 gap-2">
-                <div className="bg-[#12161C] border border-[#242B33] rounded-xl p-3">
-                  <div className="flex flex-col gap-0.5">
-                    <div className="text-xs"><span className="text-[#6B7280]">两市成交额 </span><span className="text-[#F0F2F5] font-bold">{totalTurnover}</span></div>
-                    {(diffStr || prevDiffStr) && <div className="text-[10px] flex gap-2">
-                      {diffStr && <span className="whitespace-nowrap"><span className="text-[#6B7280]">较昨日</span><span className={`font-medium ${diffAmt > 0 ? 'text-[#EF4444]' : 'text-[#22C55E]'}`}>{diffStr}</span></span>}
-                      {diffStr && prevDiffStr && <span className="text-[#4D545C]">/</span>}
-                      {prevDiffStr && <span className="whitespace-nowrap"><span className="text-[#6B7280]">较前日</span><span className={`font-medium ${prevDiffAmt > 0 ? 'text-[#EF4444]' : 'text-[#22C55E]'}`}>{prevDiffStr}</span></span>}
-                    </div>}
-                  </div>
-                </div>
-                <div className="bg-[#12161C] border border-[#242B33] rounded-xl p-3">
-                  <div className="text-[10px] text-[#6B7280] mb-1">市场温度</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <StatBlock
+                  className="md:col-span-2"
+                  label="两市成交额"
+                  value={totalTurnover}
+                  sub={(() => {
+                    if (!(diffStr || prevDiffStr)) return null
+                    return (
+                      <div className="flex gap-2 flex-wrap">
+                        {diffStr && <span className="flex items-center gap-0.5"><span className="text-[var(--text-3)]">较昨</span><span className="font-semibold" style={{ color: diffAmt > 0 ? 'var(--up)' : 'var(--down)' }}>{diffAmt > 0 ? <ArrowUpRight size={11} className="inline"/> : <ArrowDownRight size={11} className="inline"/>}{diffStr}</span></span>}
+                        {prevDiffStr && <span className="flex items-center gap-0.5"><span className="text-[var(--text-3)]">较前</span><span className="font-semibold" style={{ color: prevDiffAmt > 0 ? 'var(--up)' : 'var(--down)' }}>{prevDiffStr}</span></span>}
+                      </div>
+                    )
+                  })()}
+                />
+                <div className="panel p-3.5 flex flex-col gap-1.5 md:col-span-2">
+                  <span className="kpi-label">市场温度</span>
                   <Thermometer pct={avgChg} ready={dataReady} />
+                  <span className="text-[10px] text-[var(--text-3)] text-right num">{avgChg >= 0 ? '+' : ''}{avgChg.toFixed(2)}</span>
                 </div>
               </div>
             )}
-            <div className="bg-[#12161C] border border-[#242B33] rounded-xl p-4">
-              <div className="text-xs text-[#8D949E] mb-3 flex items-center gap-1.5"><Activity size={14} /> 市场涨跌</div>
-              {breadth ? (
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex items-center justify-between"><span className="text-xs text-[#8D949E]">上涨家数</span><span className="text-sm font-bold text-[#EF4444]">{breadth.up}</span></div>
-                  <div className="flex items-center justify-between"><span className="text-xs text-[#8D949E]">下跌家数</span><span className="text-sm font-bold text-[#22C55E]">{breadth.down}</span></div>
-                  <div className="flex items-center justify-between"><span className="text-xs text-[#8D949E]">涨停家数</span><span className="text-sm font-bold text-[#EF4444]">{breadth.limUp}</span></div>
-                  <div className="flex items-center justify-between"><span className="text-xs text-[#8D949E]">跌停家数</span><span className="text-sm font-bold text-[#22C55E]">{breadth.limDown}</span></div>
-                </div>
-              ) : (
-                <div className="text-xs text-[#4D545C]">加载中...</div>
-              )}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+              <div className="panel p-4">
+                <div className="section-title mb-3"><Activity size={14} className="text-[var(--gold)]" />市场涨跌</div>
+                {breadth ? (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-y-3 gap-x-2">
+                    <div className="flex items-center justify-between"><span className="text-xs text-[var(--text-2)]">上涨家数</span><span className="text-base font-bold t-up num">{breadth.up}</span></div>
+                    <div className="flex items-center justify-between"><span className="text-xs text-[var(--text-2)]">下跌家数</span><span className="text-base font-bold t-down num">{breadth.down}</span></div>
+                    <div className="flex items-center justify-between"><span className="text-xs text-[var(--text-2)]">涨停家数</span><span className="text-base font-bold t-up num">{breadth.limUp}</span></div>
+                    <div className="flex items-center justify-between"><span className="text-xs text-[var(--text-2)]">跌停家数</span><span className="text-base font-bold t-down num">{breadth.limDown}</span></div>
+                  </div>
+                ) : (
+                  <div className="text-xs text-[var(--text-3)]">加载中...</div>
+                )}
+              </div>
+              <SectorFlow />
             </div>
-            <SectorFlow />
           </>
         ) : (
-          <Suspense fallback={<div className="text-center text-[#4D545C] text-sm py-12">加载中...</div>}>
+          <Suspense fallback={<div className="text-center text-[var(--text-3)] text-sm py-12">加载中...</div>}>
             <IndicatorsPanel />
           </Suspense>
         )}

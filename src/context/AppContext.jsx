@@ -107,7 +107,7 @@ export function AppProvider({ children }) {
       {toasts.length > 0 && (
         <div className="fixed bottom-16 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-1.5 pointer-events-none">
           {toasts.map(item => {
-            const bg = item.type === 'error' ? 'bg-[#EF4444]' : item.type === 'success' ? 'bg-[#22C55E]' : 'bg-[#3B82F6]'
+            const bg = item.type === 'error' ? 'bg-[var(--up)]' : item.type === 'success' ? 'bg-[var(--down)]' : 'bg-[var(--gold)]'
             return <div key={item.id} className={`${bg} text-white text-xs px-4 py-2.5 rounded-lg shadow-lg pointer-events-auto`}>{item.message}</div>
           })}
         </div>

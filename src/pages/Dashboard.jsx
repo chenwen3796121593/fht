@@ -5,7 +5,6 @@ import Watchlist from '../components/Watchlist'
 import StockChart from '../components/StockChart'
 import { useApp } from '../context/AppContext.jsx'
 import { normalizeSymbol } from '../lib/constants.js'
-import useAlertChecker from '../hooks/useAlertChecker'
 
 export default function Dashboard() {
   const { prices, quotes, addExtraSymbol } = useApp()
@@ -29,8 +28,6 @@ export default function Dashboard() {
     } catch(e) { return [] }
   })
 
-  useAlertChecker(prices)
-
   const handleSelect = (s) => { setSelected(s); localStorage.setItem('fh_selected', JSON.stringify(s)) }
   const handleAddStock = (s) => {
     if (!s) return
@@ -42,12 +39,27 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="bg-[#0A0F14] h-full overflow-y-auto">
+    <div className="bg-[var(--bg)] h-full overflow-y-auto scroll-thin">
       <TopBar active="dashboard" />
-      <div className="pt-3"><MarketBar quotes={quotes} /></div>
-      <Watchlist selected={selected.symbol} onSelect={handleSelect} prices={prices} customStocks={customStocks} onAddStock={handleAddStock} onRemoveStock={handleRemoveStock} />
-      <div className="pb-6">
-        <StockChart symbol={selected.symbol} name={selected.name} priceData={quotes[selected.symbol] || prices[selected.symbol]} />
+      <div className="px-4 py-3 md:px-6 md:py-4 flex flex-col gap-3">
+        <div className="flex items-end justify-between fade-up">
+          <div>
+            <div className="eyebrow hidden md:block">Watchlist</div>
+            <h1 className="h1 mt-0.5">自选盯盘</h1>
+          </div>
+          <div className="text-[11px] text-[var(--text-3)] num flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--down)] inline-block animate-pulse" />实时行情
+          </div>
+        </div>
+
+        <MarketBar quotes={quotes} />
+
+        <div className="md:grid md:grid-cols-[260px_minmax(0,1fr)] md:gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
+          <Watchlist embedded selected={selected.symbol} onSelect={handleSelect} prices={prices} customStocks={customStocks} onAddStock={handleAddStock} onRemoveStock={handleRemoveStock} />
+          <div className="mt-3 md:mt-0 pb-8">
+            <StockChart symbol={selected.symbol} name={selected.name} priceData={quotes[selected.symbol] || prices[selected.symbol]} />
+          </div>
+        </div>
       </div>
     </div>
   )

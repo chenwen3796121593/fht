@@ -3,6 +3,12 @@ import { MACRO_INTERVAL, CACHE_TTL } from '../lib/constants.js'
 import { TrendingUp, Landmark, DollarSign, Banknote } from 'lucide-react'
 import { createChart, ColorType, LineSeries } from 'lightweight-charts'
 
+const C_BG = '#0E1117'
+const C_GOLD = '#E8B04B'
+const C_GOLD_BRIGHT = '#F8D083'
+const C_GREEN = '#25C285'
+const C_TEXT = 'rgba(255,255,255,0.4)'
+
 function LineChart({ data, lines, shData, height = 110 }) {
   const containerRef = useRef(null)
   const chartRef = useRef(null)
@@ -15,7 +21,7 @@ function LineChart({ data, lines, shData, height = 110 }) {
     if (!chartRef.current) {
       const chart = createChart(containerRef.current, {
         width, height,
-        layout: { background: { type: ColorType.Solid, color: '#0D1117' }, textColor: 'rgba(255,255,255,0.4)' },
+        layout: { background: { type: ColorType.Solid, color: C_BG }, textColor: C_TEXT, fontFamily: 'Inter, sans-serif' },
         grid: { vertLines: { visible: false }, horzLines: { visible: false } },
         crosshair: { mode: 1 },
         rightPriceScale: { visible: false },
@@ -24,7 +30,7 @@ function LineChart({ data, lines, shData, height = 110 }) {
       })
       const seriesMap = {}
       lines.forEach(line => {
-        const s = chart.addSeries(LineSeries, { color: line.color, lineWidth: 1, priceLineVisible: false, lastValueVisible: false })
+        const s = chart.addSeries(LineSeries, { color: line.color, lineWidth: 2, priceLineVisible: false, lastValueVisible: false })
         if (line.dash) s.applyOptions({ lineStyle: 2 })
         s.setData(chartData.map(d => ({ time: d.time, value: d[line.key] || 0 })))
         seriesMap[line.key] = s
@@ -33,7 +39,7 @@ function LineChart({ data, lines, shData, height = 110 }) {
         const shMap = {}; shData.forEach(s => { shMap[s.date] = s.close })
         const shVals = data.map(d => shMap[d.date]).filter(v => v != null)
         if (shVals.length > 1) {
-          const shSeries = chart.addSeries(LineSeries, { color: 'rgba(180,180,180,0.5)', lineWidth: 0.8, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, priceScaleId: 'sh' })
+          const shSeries = chart.addSeries(LineSeries, { color: 'rgba(180,180,180,0.45)', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, priceScaleId: 'sh' })
           chart.priceScale('sh').applyOptions({ visible: false })
           shSeries.setData(chartData.map(d => ({ time: d.time, value: shMap[d.date] || null })).filter(d => d.value != null))
           seriesMap._sh = shSeries
@@ -51,21 +57,21 @@ function LineChart({ data, lines, shData, height = 110 }) {
     return () => { if (chartRef.current) { chartRef.current.chart.remove(); chartRef.current = null } }
   }, [data, lines, shData])
 
-  if (!data || data.length < 2) return <div className="text-[9px] text-[#4D545C] text-center py-4">暂无数据</div>
-  return <div ref={containerRef} style={{ width: '100%', height, borderRadius: 4, overflow: 'hidden' }} />
+  if (!data || data.length < 2) return <div className="text-[9px] text-[var(--text-3)] text-center py-4">暂无数据</div>
+  return <div ref={containerRef} style={{ width: '100%', height, borderRadius: 6, overflow: 'hidden' }} />
 }
 
 function IndicatorCard({ title, data, lines, rows, loading, shData, icon: Icon }) {
   return (
-    <div className="bg-[#12161C] border border-[#242B33] rounded-xl p-2.5 flex flex-col gap-1.5">
-      <div className="text-[10px] font-medium text-[#8D949E] flex items-center gap-1"><Icon size={12} />{title}</div>
-      {loading ? <div className="text-[9px] text-[#4D545C] py-4 text-center">加载中...</div> : <>
+    <div className="panel panel-hover p-3 flex flex-col gap-2">
+      <div className="text-[11px] font-semibold text-[var(--text-2)] flex items-center gap-1.5"><Icon size={13} className="text-[var(--gold)]" />{title}</div>
+      {loading ? <div className="text-[9px] text-[var(--text-3)] py-6 text-center">加载中...</div> : <>
         <LineChart data={data} lines={lines} shData={shData} />
-        <div className="text-[8px] text-[#6B7280] overflow-x-auto">
+        <div className="text-[9px] text-[var(--text-3)] overflow-x-auto scrollbar-hide">
           <table className="w-full">
-            <thead><tr>{rows.headers.map((h,i) => <th key={i} className="text-left font-normal pr-1">{h}</th>)}</tr></thead>
+            <thead><tr>{rows.headers.map((h,i) => <th key={i} className="text-left font-normal pr-1 text-[var(--text-3)]">{h}</th>)}</tr></thead>
             <tbody>{(data||[]).slice(-5).reverse().map((d,i) => (
-              <tr key={i} className="border-t border-[#1A2129]">{rows.cells.map((c,ci) => <td key={ci} className="py-0.5 pr-1">{c(d)}</td>)}</tr>
+              <tr key={i} className="border-t border-[var(--border-soft)]">{rows.cells.map((c,ci) => <td key={ci} className="py-1 pr-1 text-[var(--text)] num">{c(d)}</td>)}</tr>
             ))}</tbody>
           </table>
         </div>
@@ -137,15 +143,18 @@ export default function IndicatorsPanel() {
   }, [])
 
   return (
-    <div className="grid grid-cols-2 gap-2">
-        <IndicatorCard icon={TrendingUp} title="M1/M2 货币供应" data={m1m2} shData={shMonthly} lines={[{key:'m1Yoy',color:'#3B82F6'},{key:'m2Yoy',color:'#EAB308',dash:'4,2'}]} loading={loading}
+    <div>
+      {lastUpdate && <div className="text-[10px] text-[var(--text-3)] mb-2 text-right">更新于 {lastUpdate}</div>}
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+        <IndicatorCard icon={TrendingUp} title="M1/M2 货币供应" data={m1m2} shData={shMonthly} lines={[{key:'m1Yoy',color:C_GOLD},{key:'m2Yoy',color:C_GOLD_BRIGHT,dash:'4,2'}]} loading={loading}
           rows={{headers:['月','M1%','M2%','M1万亿'],cells:[d=>d?.date?.slice(2),d=>d?.m1Yoy?.toFixed(1),d=>d?.m2Yoy?.toFixed(1),d=>d?.m1?.toFixed(1)]}} />
-        <IndicatorCard icon={Landmark} title="新增贷款" data={loan} shData={shMonthly} lines={[{key:'loan',color:'#22C55E'}]} loading={loading}
+        <IndicatorCard icon={Landmark} title="新增贷款" data={loan} shData={shMonthly} lines={[{key:'loan',color:C_GREEN}]} loading={loading}
           rows={{headers:['月','新增(亿)','同比%','累计万亿'],cells:[d=>d?.date?.slice(2),d=>d?.loan?.toFixed(0),d=>d?.loanYoy?.toFixed(1),d=>d?.loanAcc?.toFixed(1)]}} />
-        <IndicatorCard icon={DollarSign} title="贷款增速" data={loan} shData={shMonthly} lines={[{key:'loanYoy',color:'#3B82F6'}]} loading={loading}
+        <IndicatorCard icon={DollarSign} title="贷款增速" data={loan} shData={shMonthly} lines={[{key:'loanYoy',color:C_GOLD}]} loading={loading}
           rows={{headers:['月','同比%','累计万亿',''],cells:[d=>d?.date?.slice(2),d=>d?.loanYoy?.toFixed(1),d=>d?.loanAcc?.toFixed(1),()=>'']}} />
-        <IndicatorCard icon={Banknote} title="准备金率" data={reserve} shData={shMonthly} lines={[{key:'reserveRate',color:'#F97316'}]} loading={loading}
+        <IndicatorCard icon={Banknote} title="准备金率" data={reserve} shData={shMonthly} lines={[{key:'reserveRate',color:'#F2554F'}]} loading={loading}
           rows={{headers:['日','准备金%','变动bp','上证次日'],cells:[d=>d?.date,d=>d?.reserveRate?.toFixed(2),d=>(d?.reserveChange>0?'+':'')+d?.reserveChange,d=>(d?.shNext>0?'+':'')+d?.shNext?.toFixed(2)+'%']}} />
       </div>
+    </div>
   )
 }

@@ -152,28 +152,28 @@ export default function VideoRoom({ roomId, nick, onClose }) {
   const total = peers.length + 1
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#0A0F14] flex flex-col">
-      <div className="flex items-center gap-2 px-3 py-2 bg-[#12161C] border-b border-[#242B33]">
-        <span className="text-sm font-bold text-[#F0F2F5] flex-1">
+    <div className="fixed inset-0 z-50 bg-[var(--bg)] flex flex-col">
+      <div className="flex items-center gap-2 px-3 py-2 bg-[var(--surface)] border-b border-[var(--border)]">
+        <span className="text-sm font-bold text-[var(--text)] flex-1">
           视频通话{status === 'connected' ? ' · ' + total + '人' : ''}
           {status === 'connecting' ? ' · 连接中...' : status === 'media' ? ' · 获取摄像头...' : status === 'error' ? ' · 摄像头失败' : ''}
           {status === 'disconnected' ? ' · 已断开' : ''}
         </span>
-        <button onClick={toggleMute} className={`w-8 h-8 rounded-lg flex items-center justify-center ${muted ? 'bg-[#EF4444] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>{muted ? <MicOff size={16} /> : <Mic size={16} />}</button>
-        <button onClick={toggleVideo} className={`w-8 h-8 rounded-lg flex items-center justify-center ${videoOff ? 'bg-[#EF4444] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>{videoOff ? <VideoOff size={16} /> : <Video size={16} />}</button>
-        <button onClick={onClose} className="w-8 h-8 rounded-lg bg-[#EF4444] text-white flex items-center justify-center"><X size={16} /></button>
+        <button onClick={toggleMute} className={`w-8 h-8 rounded-lg flex items-center justify-center ${muted ? 'bg-[var(--up)] text-white' : 'bg-[var(--surface-2)] text-[var(--text-2)]'}`}>{muted ? <MicOff size={16} /> : <Mic size={16} />}</button>
+        <button onClick={toggleVideo} className={`w-8 h-8 rounded-lg flex items-center justify-center ${videoOff ? 'bg-[var(--up)] text-white' : 'bg-[var(--surface-2)] text-[var(--text-2)]'}`}>{videoOff ? <VideoOff size={16} /> : <Video size={16} />}</button>
+        <button onClick={onClose} className="w-8 h-8 rounded-lg bg-[var(--up)] text-white flex items-center justify-center"><X size={16} /></button>
       </div>
-      {status === 'connecting' && <div className="flex-1 flex items-center justify-center"><Loader size={32} className="animate-spin text-[#4D545C]" /></div>}
+      {status === 'connecting' && <div className="flex-1 flex items-center justify-center"><Loader size={32} className="animate-spin text-[var(--text-3)]" /></div>}
       {status !== 'connecting' && (
         <div className="flex-1 p-1 overflow-hidden" style={{ display: 'grid', gridTemplateColumns: total <= 2 ? '1fr' : '1fr 1fr', gridAutoRows: '1fr', gap: '4px' }}>
           {peers.map(({ user }) => (
-            <div key={user} className="flex-1 relative bg-[#1A2129] rounded-lg overflow-hidden">
+            <div key={user} className="flex-1 relative bg-[var(--surface-2)] rounded-lg overflow-hidden">
               <video autoPlay playsInline className="absolute inset-0 w-full h-full object-cover" ref={el => { const p = peers.find(x => x.user === user); if (p && el && el.srcObject !== p.stream) el.srcObject = p.stream }} />
               <span className="absolute bottom-1 left-1 text-[10px] bg-black/50 text-white px-1.5 py-0.5 rounded">{user}</span>
             </div>
           ))}
-          <div className="relative bg-[#1A2129] rounded-lg overflow-hidden min-h-0">
-            {status === 'connected' ? <video ref={localVideo} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[#4D545C] text-xs">摄像头未开启</div>}
+          <div className="relative bg-[var(--surface-2)] rounded-lg overflow-hidden min-h-0">
+            {status === 'connected' ? <video ref={localVideo} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[var(--text-3)] text-xs">摄像头未开启</div>}
             <span className="absolute bottom-1 left-1 text-[10px] bg-black/50 text-white px-1.5 py-0.5 rounded">{nick}（我）</span>
           </div>
         </div>

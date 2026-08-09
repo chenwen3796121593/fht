@@ -4,6 +4,13 @@ import { normalizeSymbol } from '../lib/constants.js'
 
 function todayStr() { return new Date().toDateString() }
 
+const C_UP = '#F2554F'
+const C_DOWN = '#25C285'
+const C_BG = '#0E1117'
+const C_GRID = '#1A212B'
+const C_BORDER = '#232B36'
+const C_TEXT = '#5C6573'
+
 export default function StockChart({ symbol, name, priceData }) {
   const [range, setRange] = useState('日线')
   const [kdata, setKdata] = useState(null)
@@ -15,7 +22,6 @@ export default function StockChart({ symbol, name, priceData }) {
   const isIntraday = range === '分时'
   const options = isCommodity ? ['日线', '全部'] : ['分时', '日线', '全部']
 
-  // Fetch K-line
   useEffect(() => {
     let cancelled = false; setLoading(true); setKdata(null)
 
@@ -89,25 +95,23 @@ export default function StockChart({ symbol, name, priceData }) {
 
   const toTime = (d, i) => { if (!d.day) return i; return d.day.length > 10 ? Math.floor(new Date(d.day).getTime() / 1000) : d.day }
   const toCandle = (d, i) => ({ time: toTime(d, i), open: d.open, high: d.high, low: d.low, close: d.close })
-  const toVol = (d, i) => ({ time: toTime(d, i), value: d.volume || 0, color: d.close >= d.open ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.4)' })
+  const toVol = (d, i) => ({ time: toTime(d, i), value: d.volume || 0, color: d.close >= d.open ? 'rgba(242,85,79,0.4)' : 'rgba(37,194,133,0.4)' })
 
-  // Create or update chart
   useEffect(() => {
     if (!containerRef.current || !displayData.length) return
     const container = containerRef.current
     const prev = chartRef.current
 
     if (!prev || prev.chart === null) {
-      // First time: create chart
       const chart = createChart(container, {
-        width: container.clientWidth, height: 220,
-        layout: { background: { type: ColorType.Solid, color: '#0D1117' }, textColor: '#4D545C' },
-        grid: { vertLines: { color: '#1A2129' }, horzLines: { color: '#1A2129' } },
+        width: container.clientWidth, height: 240,
+        layout: { background: { type: ColorType.Solid, color: C_BG }, textColor: C_TEXT, fontFamily: 'Inter, sans-serif' },
+        grid: { vertLines: { color: C_GRID }, horzLines: { color: C_GRID } },
         crosshair: { mode: 0 },
-        rightPriceScale: { borderColor: '#242B33', scaleMargins: { top: 0.05, bottom: 0.25 } },
-        timeScale: { borderColor: '#242B33', timeVisible: isIntraday, secondsVisible: false },
+        rightPriceScale: { borderColor: C_BORDER, scaleMargins: { top: 0.05, bottom: 0.25 } },
+        timeScale: { borderColor: C_BORDER, timeVisible: isIntraday, secondsVisible: false },
       })
-      const cs = chart.addSeries(CandlestickSeries, { upColor: '#EF4444', downColor: '#22C55E', borderUpColor: '#EF4444', borderDownColor: '#22C55E', wickUpColor: '#EF4444', wickDownColor: '#22C55E' })
+      const cs = chart.addSeries(CandlestickSeries, { upColor: C_UP, downColor: C_DOWN, borderUpColor: C_UP, borderDownColor: C_DOWN, wickUpColor: C_UP, wickDownColor: C_DOWN })
       const vs = chart.addSeries(HistogramSeries, { priceFormat: { type: 'volume' }, priceScaleId: '' })
       vs.priceScale().applyOptions({ scaleMargins: { top: 0.78, bottom: 0 } })
       cs.setData(displayData.map((d,i) => toCandle(d,i)))
@@ -118,33 +122,35 @@ export default function StockChart({ symbol, name, priceData }) {
       return () => { window.removeEventListener('resize', onResize); chart.remove(); chartRef.current = null }
     }
 
-    // Data changed: just update series
     if (prev.kdata !== kdata || prev.isIntraday !== isIntraday) {
-      // Source changed → full setData
       prev.cs.setData(displayData.map((d,i) => toCandle(d,i)))
       prev.vs.setData(displayData.map((d,i) => toVol(d,i)))
     } else {
-      // Only last candle changed → update
       const last = displayData[displayData.length - 1]
       const t = toTime(last, displayData.length - 1)
       prev.cs.update({ time: t, open: last.open, high: last.high, low: last.low, close: last.close })
-      prev.vs.update({ time: t, value: last.volume || 0, color: last.close >= last.open ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.4)' })
+      prev.vs.update({ time: t, value: last.volume || 0, color: last.close >= last.open ? 'rgba(242,85,79,0.4)' : 'rgba(37,194,133,0.4)' })
     }
-    // Save state for next comparison
     prev.kdata = kdata
     prev.isIntraday = isIntraday
   }, [displayData, kdata, isIntraday])
 
+  const up = (priceData?.change || 0) >= 0
+
   return (
     <div className="px-4 pb-3">
-      <div className="bg-[#12161C] border border-[#242B33] rounded-lg p-3.5">
+      <div className="panel p-3.5">
         <div className="mb-3">
-          <div className="text-sm font-semibold text-[#F0F2F5]">{symbol} · {name}</div>
-          <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-lg font-bold text-[#F0F2F5]">{priceData?.formattedPrice || priceData?.price || '--'}</span>
+          <div className="text-sm font-semibold text-[var(--text)] flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: up ? C_UP : C_DOWN }} />
+            {name}
+            <span className="text-[11px] font-mono text-[var(--text-3)]">{symbol}</span>
+          </div>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-xl font-bold text-[var(--text)] num">{priceData?.formattedPrice || priceData?.price || '--'}</span>
             {priceData?.change != null && (
-              <span className={`text-[13px] font-medium ${(priceData.change || 0) >= 0 ? 'text-[#EF4444]' : 'text-[#22C55E]'}`}>
-                {(priceData.change || 0) >= 0 ? '+' : ''}{(priceData.change || 0).toFixed(2)}%
+              <span className={`text-[13px] font-semibold num ${up ? 't-up' : 't-down'}`}>
+                {up ? '+' : ''}{(priceData.change || 0).toFixed(2)}%
               </span>
             )}
           </div>
@@ -152,12 +158,12 @@ export default function StockChart({ symbol, name, priceData }) {
         <div className="flex gap-1.5 mb-3">
           {options.map(t => (
             <button key={t} onClick={() => setRange(t)}
-              className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${range === t ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E]'}`}>{t}</button>
+              className={`chip ${range === t ? 'chip-active' : ''}`}>{t}</button>
           ))}
         </div>
-        {loading && <div className="w-full bg-[#0D1117] rounded-md flex items-center justify-center" style={{ height: 220 }}><span className="text-sm text-[#4D545C]">加载中...</span></div>}
-        {!loading && !kdata && <div className="w-full bg-[#0D1117] rounded-md flex items-center justify-center" style={{ height: 220 }}><span className="text-sm text-[#4D545C]">暂无 K 线数据</span></div>}
-        <div ref={containerRef} style={{ width: '100%', height: displayData.length > 0 ? 220 : 0, overflow: 'hidden' }} />
+        {loading && <div className="w-full flex items-center justify-center rounded-lg" style={{ height: 240, background: C_BG }}><span className="text-sm text-[var(--text-3)]">加载中...</span></div>}
+        {!loading && !kdata && <div className="w-full flex items-center justify-center rounded-lg" style={{ height: 240, background: C_BG }}><span className="text-sm text-[var(--text-3)]">暂无 K 线数据</span></div>}
+        <div ref={containerRef} style={{ width: '100%', height: displayData.length > 0 ? 240 : 0, overflow: 'hidden' }} />
       </div>
     </div>
   )

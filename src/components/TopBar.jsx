@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Flame, House, TrendingUp, MessageCircle, Bell, Newspaper, Zap, CircleDollarSign } from 'lucide-react'
+import { Flame, House, TrendingUp, MessageCircle, Zap, CircleDollarSign } from 'lucide-react'
 import { useApp } from '../context/AppContext.jsx'
 
 const ICON_SZ = 17
-const PAGES = ['home', 'dashboard', 'news', 'chat', 'alerts', 'commodities']
-const ICONS = { home: House, dashboard: TrendingUp, news: Newspaper, chat: MessageCircle, alerts: Zap, commodities: CircleDollarSign }
-const LABELS = { home: '主页', dashboard: '自选', news: '新闻', chat: '聊天', alerts: '分析', commodities: '大宗' }
+const PAGES = ['home', 'dashboard', 'chat', 'alerts', 'commodities']
+const ICONS = { home: House, dashboard: TrendingUp, chat: MessageCircle, alerts: Zap, commodities: CircleDollarSign }
+const LABELS = { home: '主页', dashboard: '自选', chat: '聊天', alerts: '分析', commodities: '大宗' }
 
 function useClock() {
   const [time, setTime] = useState(() => new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }))
@@ -16,69 +16,72 @@ function useClock() {
   return time
 }
 
-function hasActiveAlerts() {
-  try { return JSON.parse(localStorage.getItem('fh_alerts') || '[]').some(a => a.active) } catch { return false }
-}
 function hasMentionBadge() {
   try { return parseInt(localStorage.getItem('fh_mention_badge') || '0') > 0 } catch { return false }
 }
 
 export default function TopBar({ active, sidebar }) {
   const { navigate } = useApp()
-  const showBadge = hasActiveAlerts()
   const mentionBadge = hasMentionBadge()
   const clock = useClock()
 
   // 侧边栏模式（平板/电脑）
   if (sidebar) {
     return (
-      <div className="flex flex-col items-center gap-3 py-4 px-2 bg-[#0A0F14] border-r border-[#242B33] h-full">
-        <div className="flex flex-col items-center mb-2">
-          <Flame size={24} className="text-orange-400" />
-          <span className="text-[10px] font-bold text-orange-400 mt-0.5">烽火台</span>
-          <span className="text-[10px] font-mono text-[#F0F2F5] mt-0.5" style={{ fontVariantNumeric: 'tabular-nums' }}>{clock}</span>
+      <div className="flex flex-col items-center gap-2 py-5 px-2 bg-[var(--bg-elev)] border-r border-[var(--border)] h-full">
+        <div className="flex flex-col items-center mb-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[var(--gold-soft)] border border-[rgba(232,176,75,0.25)]">
+            <Flame size={22} className="text-[var(--gold)]" />
+          </div>
+          <span className="text-[11px] font-bold text-[var(--gold)] mt-1.5 tracking-wide">烽火台</span>
+          <span className="text-[9px] font-mono text-[var(--text-2)] mt-0.5 num" style={{ fontVariantNumeric: 'tabular-nums' }}>{clock}</span>
         </div>
+        <div className="w-8 divider mb-1" />
+        <div className="flex flex-col items-center gap-1.5 w-full">
+          {PAGES.map(page => {
+            const Icon = ICONS[page]
+            const isActive = active === page
+            return (
+              <button key={page} onClick={() => navigate(page)}
+                className={`relative flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl text-[10px] w-full transition-all ${isActive ? 'bg-[var(--gold-soft)] text-[var(--gold)] shadow-[inset_0_0_0_1px_rgba(232,176,75,0.28)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-[3px] before:h-5 before:rounded-r before:bg-[var(--gold)]' : 'text-[var(--text-2)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]'}`}>
+                <Icon size={20} />
+                <span className="font-medium">{LABELS[page]}</span>
+                {page === 'chat' && mentionBadge && <span className={`absolute top-1.5 right-2.5 w-2 h-2 rounded-full ${isActive ? 'bg-[#0A0C10]' : 'bg-[var(--down)]'}`} />}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
+  // 顶栏模式（手机）- md 以上隐藏（iPad/电脑走侧边栏）
+  return (
+    <div className="flex items-center gap-2 px-4 pt-3.5 pb-2.5 sticky top-0 bg-[var(--bg)]/90 backdrop-blur-xl z-30 md:hidden border-b border-[var(--border-soft)] shadow-[0_1px_0_rgba(255,255,255,0.02)]">
+      <div className="flex items-center gap-2 shrink-0">
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--gold-soft)] border border-[rgba(232,176,75,0.25)]">
+          <Flame size={17} className="text-[var(--gold)]" />
+        </div>
+        <div className="flex flex-col leading-none">
+          <span className="text-[13px] font-bold text-[var(--gold)]">烽火台</span>
+          <span className="text-[10px] font-mono text-[var(--text-2)] num mt-0.5" style={{ fontVariantNumeric: 'tabular-nums' }}>{clock}</span>
+        </div>
+      </div>
+      <div className="flex-1" />
+      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
         {PAGES.map(page => {
           const Icon = ICONS[page]
           const isActive = active === page
           return (
             <button key={page} onClick={() => navigate(page)}
-              className={`flex flex-col items-center gap-0.5 py-2 px-3 rounded-lg text-[10px] relative transition-colors w-full ${isActive ? 'bg-[#3B82F6] text-white' : 'text-[#8D949E] hover:text-[#F0F2F5] hover:bg-[#1A2129]'}`}>
-              <Icon size={20} />
+              className={`relative flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-medium transition-all shrink-0 ${isActive ? 'bg-[var(--gold)] text-[#0A0C10]' : 'bg-[var(--surface-2)] text-[var(--text-2)]'}`}>
+              <Icon size={13} />
               <span>{LABELS[page]}</span>
-              {page === 'alerts' && showBadge && <span className="absolute top-0.5 right-1 w-1.5 h-1.5 bg-[#EF4444] rounded-full" />}
-              {page === 'chat' && mentionBadge && <span className="absolute top-0.5 right-1 w-1.5 h-1.5 bg-[#22C55E] rounded-full" />}
+              {page === 'chat' && mentionBadge && <span className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full border border-[var(--bg)] ${isActive ? 'bg-[#0A0C10]' : 'bg-[var(--down)]'}`} />}
             </button>
           )
         })}
       </div>
-    )
-  }
-
-  // 顶栏模式（手机）- lg 以上隐藏
-  return (
-    <div className="flex items-center gap-1.5 px-4 pt-4 pb-3 sticky top-0 bg-[#0A0F14] z-10 lg:hidden">
-      <div className="flex flex-col">
-        <div className="flex items-center gap-1">
-          <Flame size={22} className="text-orange-400" />
-          <span className="text-xs font-bold text-orange-400 leading-none">烽火台</span>
-        </div>
-        <span className="text-xs font-mono tracking-widest text-[#F0F2F5] leading-none mt-0.5" style={{ fontVariantNumeric: 'tabular-nums' }}>{clock}</span>
-      </div>
-      <div className="flex-1" />
-      {PAGES.map(page => {
-        const Icon = ICONS[page]
-        const isActive = active === page
-        return (
-          <button key={page} onClick={() => navigate(page)}
-            className={`flex flex-col items-center gap-0.5 px-1.5 py-1 rounded-lg text-[9px] relative transition-colors ${isActive ? 'bg-[#3B82F6] text-white' : 'bg-[#1A2129] text-[#8D949E] hover:text-[#F0F2F5]'}`}>
-            <Icon size={ICON_SZ} />
-            <span className="text-[8px] leading-none">{LABELS[page]}</span>
-            {page === 'alerts' && showBadge && <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 bg-[#EF4444] rounded-full" />}
-            {page === 'chat' && mentionBadge && <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 bg-[#22C55E] rounded-full" />}
-          </button>
-        )
-      })}
     </div>
   )
 }
