@@ -5,7 +5,7 @@ import App from './App.jsx'
 
 // Register service worker for PWA
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/service-worker.js')
+  navigator.serviceWorker.register('/sw.js')
 }
 
 createRoot(document.getElementById('root')).render(

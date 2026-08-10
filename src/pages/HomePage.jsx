@@ -33,19 +33,86 @@ function StatBlock({ label, value, sub, className = '' }) {
 function SectorFlow() {
   const [tab, setTab] = useState('in')
   const [allData, setAllData] = useState(null)
+  const [empty, setEmpty] = useState(false)
+  const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     let cancelled = false
-    async function fetchData() {
+    let inFlight = false
+    // 节流 25s + 在途去重（SW 只是第二道防线）
+    // 手工拼 query：禁用 URLSearchParams —— fs=m:90+t:2 的 + 会被转义成 %2B，
+    // 东财按字面解析 → 返回空 diff。
+    // 注意：这里不能带 po —— 下面按 po=1/po=0 分别追加；
+    // 若基串里已有 po，东财只认第一个，流出榜会拿到流入榜（过滤后为空）。
+    const Q =
+      'pn=1&pz=40&np=1&fltt=2&invt=2&fid=f62&fs=m:90+t:2&fields=f12,f14,f62,f184'
+    const HOSTS = ['push2delay.eastmoney.com', 'push2ex.eastmoney.com']
+
+    async function getFlow() {
+      if (cancelled || inFlight) return
+      inFlight = true
       try {
-        const res = await fetch('/api/flow')
-        const json = await res.json()
-        if (!cancelled && json.data && json.outData) setAllData(json)
-      } catch(e) { if (!cancelled) setAllData(null) }
+        let inJson, outJson, ok = false
+        // 主域名失败再退回备用域名
+        for (const h of HOSTS) {
+          try {
+            const [ir, or] = await Promise.all([
+              fetch('https://' + h + '/api/qt/clist/get?' + Q + '&po=1'),
+              fetch('https://' + h + '/api/qt/clist/get?' + Q + '&po=0'),
+            ])
+            if (!ir.ok || !or.ok) throw new Error('http ' + ir.status)
+            inJson = await ir.json()
+            outJson = await or.json()
+            ok = true
+            break
+          } catch (e) {
+            /* 尝试下一个 host */
+          }
+        }
+        if (!ok) throw new Error('all hosts failed')
+        if (cancelled) return
+        const inDiff = inJson?.data?.diff || []
+        const outDiff = outJson?.data?.diff || []
+        // 收盘清算时段东财可能返回空 diff —— 显示空状态，不报错
+        if (!inDiff.length && !outDiff.length) {
+          setAllData(null)
+          setEmpty(true)
+          setFailed(false)
+          return
+        }
+        setEmpty(false)
+        setFailed(false)
+        const map = (arr) =>
+          arr.map((d) => ({
+            name: d.f14 || '?',
+            netFlow: Number(d.f62) || 0,
+            change: Number(d.f184) || 0,
+          }))
+        const inflow = map(inDiff)
+          .filter((x) => x.netFlow > 0)
+          .sort((a, b) => b.netFlow - a.netFlow)
+          .slice(0, 10)
+        const outflow = map(outDiff)
+          .filter((x) => x.netFlow < 0)
+          .sort((a, b) => a.netFlow - b.netFlow)
+          .slice(0, 10)
+        setAllData({ data: inflow, outData: outflow })
+      } catch (e) {
+        if (!cancelled) {
+          setAllData(null)
+          setFailed(true)
+        }
+      } finally {
+        inFlight = false
+      }
     }
-    fetchData()
-    const timer = setInterval(fetchData, 30000)
-    return () => { cancelled = true; clearInterval(timer) }
+
+    getFlow()
+    const timer = setInterval(getFlow, 25000)
+    return () => {
+      cancelled = true
+      clearInterval(timer)
+    }
   }, [])
 
   const data = tab === 'in' ? allData?.data : allData?.outData
@@ -60,7 +127,7 @@ function SectorFlow() {
           <button onClick={() => setTab('out')} className={`chip ${tab === 'out' ? 'chip-active' : ''}`}>流出 TOP</button>
         </div>
       </div>
-      {data && data.length > 0 ? (
+      {allData && data && data.length > 0 ? (
         <div className="flex flex-col gap-2">
           {data.map((item, i) => {
             const name = item.name || '?'
@@ -83,6 +150,10 @@ function SectorFlow() {
             )
           })}
         </div>
+      ) : empty ? (
+        <div className="text-xs text-[var(--text-3)] py-5 text-center">上游本次未返回任何行业板块资金数据</div>
+      ) : failed ? (
+        <div className="text-xs text-[var(--text-3)] py-5 text-center">暂时无法获取数据，请稍后重试</div>
       ) : (
         <div className="text-xs text-[var(--text-3)] py-5 text-center">加载中...</div>
       )}
