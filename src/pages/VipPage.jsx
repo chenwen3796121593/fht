@@ -109,15 +109,13 @@ export default function VipPage() {
   }
 
   if (loggedIn && isAdmin) return <VipAdmin strategyDraft={strategyDraft} setStrategyDraft={setStrategyDraft} savingStrat={savingStrat} handleSaveStrategy={handleSaveStrategy} applications={applications} loadingApps={loadingApps} handleRefresh={handleRefresh} handleApprove={handleApprove} handleReject={handleReject} handleLogout={handleLogout} />
-  if (loggedIn) return <div className="mx-auto w-full max-w-[760px] lg:max-w-[940px]"><VipMember currentUser={currentUser} strategy={strategy} handleLogout={handleLogout} /></div>
+  if (loggedIn) return <div className="content-narrow mx-auto w-full"><VipMember currentUser={currentUser} strategy={strategy} handleLogout={handleLogout} /></div>
 
   return (
-    <div className="bg-[var(--bg)] h-full overflow-y-auto scroll-thin">
-      <div className="mx-auto w-full max-w-[680px] lg:max-w-[960px] lg:px-6 px-4 pb-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-5">
-          <VipHome phone={phone} setPhone={setPhone} reason={reason} setReason={setReason} submitted={submitted} submitting={submitting} handleApply={handleApply} />
-          <VipLogin username={username} setUsername={setUsername} password={password} setPassword={setPassword} loginErr={loginErr} handleLogin={handleLogin} />
-        </div>
+    <div className="content-narrow mx-auto w-full flex flex-col gap-4">
+      <div className="g-2m">
+        <VipHome phone={phone} setPhone={setPhone} reason={reason} setReason={setReason} submitted={submitted} submitting={submitting} handleApply={handleApply} />
+        <VipLogin username={username} setUsername={setUsername} password={password} setPassword={setPassword} loginErr={loginErr} handleLogin={handleLogin} />
       </div>
     </div>
   )

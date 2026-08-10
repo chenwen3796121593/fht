@@ -1,14 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { createChart, ColorType, CandlestickSeries, HistogramSeries, LineStyle } from 'lightweight-charts'
-
-const C_UP = '#F2554F'
-const C_DOWN = '#25C285'
-const C_GOLD = '#E8B04B'
-const C_MUTED = '#8A93A3'
-const C_BG = '#0E1117'
-const C_GRID = '#1A212B'
-const C_BORDER = '#232B36'
-const C_TEXT = '#5C6573'
+import { getChartTheme } from '../lib/chartTheme.js'
 
 // 各周期用于计算支撑/阻力的回看窗口（根数）
 const WINDOW_FOR = { '1h': 120, '4h': 80, d: 60, w: 52, m: 24 }
@@ -22,6 +14,7 @@ const PERIODS = [
 ]
 
 export default function GoldKline({ priceData }) {
+  const theme = useMemo(() => getChartTheme(), [])
   const [period, setPeriod] = useState('d')
   const [kdata, setKdata] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -82,7 +75,7 @@ export default function GoldKline({ priceData }) {
     return d.day.length > 10 ? Math.floor(new Date(d.day).getTime() / 1000) : d.day
   }
   const toCandle = (d, i) => ({ time: toTime(d, i), open: d.open, high: d.high, low: d.low, close: d.close })
-  const toVol = (d, i) => ({ time: toTime(d, i), value: d.volume || 0, color: d.close >= d.open ? 'rgba(242,85,79,0.4)' : 'rgba(37,194,133,0.4)' })
+  const toVol = (d, i) => ({ time: toTime(d, i), value: d.volume || 0, color: d.close >= d.open ? theme.upFill : theme.downFill })
 
   // 计算支撑 / 阻力 / 枢轴参考线
   const refLines = useMemo(() => {
@@ -98,11 +91,11 @@ export default function GoldKline({ priceData }) {
     const pivot = last?.close != null ? (Math.max(...highs) + Math.min(...lows) + last.close) / 3 : (support + resistance) / 2
     const cur = rt || last?.close
     const out = [
-      { key: 'res', title: '阻力', price: resistance, color: C_UP, style: LineStyle.Dashed },
-      { key: 'sup', title: '支撑', price: support, color: C_DOWN, style: LineStyle.Dashed },
-      { key: 'pp', title: '枢轴', price: pivot, color: C_GOLD, style: LineStyle.Dotted },
+      { key: 'res', title: '阻力', price: resistance, color: theme.up, style: LineStyle.Dashed },
+      { key: 'sup', title: '支撑', price: support, color: theme.down, style: LineStyle.Dashed },
+      { key: 'pp', title: '枢轴', price: pivot, color: theme.gold, style: LineStyle.Dotted },
     ]
-    if (cur != null && isFinite(cur)) out.push({ key: 'live', title: '现价', price: cur, color: C_MUTED, style: LineStyle.LargeDashed })
+    if (cur != null && isFinite(cur)) out.push({ key: 'live', title: '现价', price: cur, color: theme.muted, style: LineStyle.LargeDashed })
     // 过滤掉互相过于接近（<0.05%）导致重叠的线
     return out.filter((l) => l.price != null && isFinite(l.price) &&
       out.every((o) => o.key === l.key || Math.abs(o.price - l.price) / (l.price || 1) > 0.0005))
@@ -115,16 +108,16 @@ export default function GoldKline({ priceData }) {
     const chart = createChart(container, {
       width: container.clientWidth,
       height: 280,
-      layout: { background: { type: ColorType.Solid, color: C_BG }, textColor: C_TEXT, fontFamily: 'Inter, sans-serif' },
-      grid: { vertLines: { color: C_GRID }, horzLines: { color: C_GRID } },
+      layout: { background: { type: ColorType.Solid, color: theme.bg }, textColor: theme.text, fontFamily: 'Inter, sans-serif' },
+      grid: { vertLines: { color: theme.grid }, horzLines: { color: theme.grid } },
       crosshair: { mode: 0 },
-      rightPriceScale: { borderColor: C_BORDER, scaleMargins: { top: 0.08, bottom: 0.25 } },
-      timeScale: { borderColor: C_BORDER, timeVisible: period === '1h' || period === '4h', secondsVisible: false },
+      rightPriceScale: { borderColor: theme.border, scaleMargins: { top: 0.08, bottom: 0.25 } },
+      timeScale: { borderColor: theme.border, timeVisible: period === '1h' || period === '4h', secondsVisible: false },
     })
     const cs = chart.addSeries(CandlestickSeries, {
-      upColor: C_UP, downColor: C_DOWN,
-      borderUpColor: C_UP, borderDownColor: C_DOWN,
-      wickUpColor: C_UP, wickDownColor: C_DOWN,
+      upColor: theme.up, downColor: theme.down,
+      borderUpColor: theme.up, borderDownColor: theme.down,
+      wickUpColor: theme.up, wickDownColor: theme.down,
     })
     const vs = chart.addSeries(HistogramSeries, { priceFormat: { type: 'volume' }, priceScaleId: '' })
     vs.priceScale().applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } })
@@ -171,7 +164,7 @@ export default function GoldKline({ priceData }) {
       <div className="flex items-start justify-between mb-3">
         <div>
           <div className="text-sm font-semibold text-[var(--text)] flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: up ? C_UP : C_DOWN }} />
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: up ? theme.up : theme.down }} />
             伦敦黄金 · XAU
           </div>
           <div className="flex items-center gap-2 mt-1">
@@ -194,17 +187,17 @@ export default function GoldKline({ priceData }) {
       </div>
 
       {loading && (
-        <div className="w-full flex items-center justify-center rounded-lg" style={{ height: 280, background: C_BG }}>
+        <div className="w-full flex items-center justify-center rounded-lg" style={{ height: 280, background: theme.bg }}>
           <span className="text-sm text-[var(--text-3)]">加载中...</span>
         </div>
       )}
       {!loading && !kdata && !unavailable && (
-        <div className="w-full flex items-center justify-center rounded-lg" style={{ height: 280, background: C_BG }}>
+        <div className="w-full flex items-center justify-center rounded-lg" style={{ height: 280, background: theme.bg }}>
           <span className="text-sm text-[var(--text-3)]">暂无 K 线数据</span>
         </div>
       )}
       {!loading && unavailable && (
-        <div className="w-full flex items-center justify-center rounded-lg px-4 text-center" style={{ height: 280, background: C_BG }}>
+        <div className="w-full flex items-center justify-center rounded-lg px-4 text-center" style={{ height: 280, background: theme.bg }}>
           <span className="text-sm text-[var(--text-3)] leading-relaxed">
             国内公开数据源仅提供日线及以上周期，<br/>小时 / 4 小时分钟级 K 线暂不可用，<br/>请切换「日线 / 周线 / 月线」查看
           </span>

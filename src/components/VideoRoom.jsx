@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { X, Mic, MicOff, Video, VideoOff, Loader } from 'lucide-react'
+import { X, Mic, MicOff, Video, VideoOff, Loader2 } from 'lucide-react'
 
 const SIGNAL_URL = 'wss://video.fenghuotai.cc.cd/room/'
 const ICE_SERVERS = {
@@ -163,7 +163,7 @@ export default function VideoRoom({ roomId, nick, onClose }) {
         <button onClick={toggleVideo} className={`w-8 h-8 rounded-lg flex items-center justify-center ${videoOff ? 'bg-[var(--up)] text-white' : 'bg-[var(--surface-2)] text-[var(--text-2)]'}`}>{videoOff ? <VideoOff size={16} /> : <Video size={16} />}</button>
         <button onClick={onClose} className="w-8 h-8 rounded-lg bg-[var(--up)] text-white flex items-center justify-center"><X size={16} /></button>
       </div>
-      {status === 'connecting' && <div className="flex-1 flex items-center justify-center"><Loader size={32} className="animate-spin text-[var(--text-3)]" /></div>}
+      {status === 'connecting' && <div className="flex-1 flex items-center justify-center"><Loader2 size={32} className="animate-spin text-[var(--text-3)]" /></div>}
       {status !== 'connecting' && (
         <div className="flex-1 p-1 overflow-hidden" style={{ display: 'grid', gridTemplateColumns: total <= 2 ? '1fr' : '1fr 1fr', gridAutoRows: '1fr', gap: '4px' }}>
           {peers.map(({ user }) => (

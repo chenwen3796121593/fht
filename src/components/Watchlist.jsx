@@ -94,7 +94,7 @@ export default function Watchlist({ selected, onSelect, prices = {}, customStock
         </div>
       )}
 
-      <div className="flex flex-col gap-1.5 max-h-[160px] lg:max-h-[58vh] overflow-y-auto scrollbar-hide">
+      <div className="flex flex-col gap-1.5">
         {all.map((s) => {
           const d = prices[s.symbol]
           let priceStr = '--', changeStr = '--', up = true
@@ -109,7 +109,7 @@ export default function Watchlist({ selected, onSelect, prices = {}, customStock
             <button
               key={s.symbol}
               onClick={() => onSelect({ symbol: s.symbol, name: s.name })}
-              className={`flex items-center rounded-xl px-3 py-2.5 text-left transition-all ${isSel ? 'bg-[var(--gold-soft)] border border-[rgba(232,176,75,0.30)]' : 'bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--surface-2)]'}`}
+              className={`flex items-center rounded-xl px-3 py-2.5 text-left transition-all ${isSel ? 'bg-[var(--gold-soft)] border border-[var(--gold-border)]' : 'bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--surface-2)]'}`}
             >
               <div className="flex flex-col gap-0.5 min-w-0">
                 <span className="text-[13px] font-semibold text-[var(--text)] truncate">{d?.name || s.name}</span>

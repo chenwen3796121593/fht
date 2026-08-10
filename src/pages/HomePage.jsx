@@ -1,9 +1,8 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
-import TopBar from '../components/TopBar'
 import MarketBar from '../components/MarketBar'
 import { useApp } from '../context/AppContext.jsx'
 import { SkeletonMarketCards, SkeletonHomeStats } from '../components/Skeleton.jsx'
-import { Activity, TrendingUp, Snowflake, Flame, BarChart3, ArrowDownRight, ArrowUpRight } from 'lucide-react'
+import { TrendingUp, Snowflake, Flame, BarChart3, ArrowDownRight, ArrowUpRight, Gauge, Scale, ArrowRightLeft } from 'lucide-react'
 
 const IndicatorsPanel = lazy(() => import('../components/IndicatorsPanel'))
 
@@ -121,7 +120,7 @@ function SectorFlow() {
   return (
     <div className="panel p-4 h-full">
       <div className="flex items-center justify-between mb-3">
-        <div className="section-title"><TrendingUp size={14} className="text-[var(--gold)]" />板块资金</div>
+        <div className="section-title"><ArrowRightLeft size={14} className="text-[var(--gold)]" />板块资金</div>
         <div className="flex gap-1.5">
           <button onClick={() => setTab('in')} className={`chip ${tab === 'in' ? 'chip-active' : ''}`}>流入 TOP</button>
           <button onClick={() => setTab('out')} className={`chip ${tab === 'out' ? 'chip-active' : ''}`}>流出 TOP</button>
@@ -189,9 +188,8 @@ export default function HomePage() {
   }, [])
 
   return (
-    <div className="bg-[var(--bg)] h-full overflow-y-auto scroll-thin">
-      <TopBar active="home" />
-      <div className="px-4 py-3 md:px-6 md:py-4 flex flex-col gap-3">
+    <div className="page-scroll scroll-thin">
+      <div className="content flex flex-col gap-3">
         {/* 页面标题区 */}
         <div className="flex items-end justify-between fade-up">
           <div>
@@ -205,18 +203,17 @@ export default function HomePage() {
 
         {isInitialLoad ? <SkeletonMarketCards /> : <MarketBar quotes={quotes} />}
 
-        {/* 子标签（桌面吸顶到 0） */}
-        <div className="flex gap-1.5 sticky top-[57px] md:top-0 bg-[var(--bg)]/90 backdrop-blur z-10 pb-1 pt-0.5 -mx-4 px-4 md:-mx-6 md:px-6">
-          <button onClick={() => setSubTab('sentiment')} className={`chip ${subTab==='sentiment' ? 'chip-active' : ''}`}><Activity size={13} />情绪</button>
+        {/* 子标签：顶栏已移出滚动容器，top:0 即可 */}
+        <div className="subtabs">
+          <button onClick={() => setSubTab('sentiment')} className={`chip ${subTab==='sentiment' ? 'chip-active' : ''}`}><Gauge size={13} />情绪</button>
           <button onClick={() => setSubTab('indicators')} className={`chip ${subTab==='indicators' ? 'chip-active' : ''}`}><BarChart3 size={13} />指标</button>
         </div>
 
         {subTab === 'sentiment' ? (
           <>
             {isInitialLoad ? <SkeletonHomeStats /> : (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="g-2m">
                 <StatBlock
-                  className="md:col-span-2"
                   label="两市成交额"
                   value={totalTurnover}
                   sub={(() => {
@@ -229,16 +226,16 @@ export default function HomePage() {
                     )
                   })()}
                 />
-                <div className="panel p-3.5 flex flex-col gap-1.5 md:col-span-2">
+                <div className="panel p-3.5 flex flex-col gap-1.5">
                   <span className="kpi-label">市场温度</span>
                   <Thermometer pct={avgChg} ready={dataReady} />
                   <span className="text-[10px] text-[var(--text-3)] text-right num">{avgChg >= 0 ? '+' : ''}{avgChg.toFixed(2)}</span>
                 </div>
               </div>
             )}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+            <div className="g-2">
               <div className="panel p-4">
-                <div className="section-title mb-3"><Activity size={14} className="text-[var(--gold)]" />市场涨跌</div>
+                <div className="section-title mb-3"><Scale size={14} className="text-[var(--gold)]" />市场涨跌</div>
                 {breadth ? (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-y-3 gap-x-2">
                     <div className="flex items-center justify-between"><span className="text-xs text-[var(--text-2)]">上涨家数</span><span className="text-base font-bold t-up num">{breadth.up}</span></div>

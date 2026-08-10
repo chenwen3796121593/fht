@@ -7,9 +7,9 @@ function Shimmer({ className = '' }) {
 // Simulates a market card in the MarketBar row
 export function SkeletonMarketCards({ count = 7 }) {
   return (
-    <div className="flex gap-2.5 overflow-x-auto scrollbar-hide -mx-1 px-1 lg:grid lg:grid-cols-7 lg:gap-2.5 lg:overflow-visible lg:mx-0 lg:px-0">
+    <div className="rail">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="flex-shrink-0 w-[132px] panel px-3 py-2.5 flex flex-col gap-1.5 lg:w-auto">
+        <div key={i} className="panel px-3 py-2.5 flex flex-col gap-1.5">
           <Shimmer className="h-3 w-16" />
           <Shimmer className="h-4 w-20" />
           <Shimmer className="h-3 w-24" />

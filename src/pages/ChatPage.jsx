@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react'
-import TopBar from '../components/TopBar'
 import { MessageCircle, Mic, Send, Smile, Laugh, Heart, ThumbsUp, ThumbsDown, Star, Flame, Rocket, Gem, BadgeCheck, TrendingUp, TrendingDown, DollarSign, PartyPopper, Angry, Frown, Annoyed, Crown, Target, Zap, Eye, Hand, Handshake, Clover, Coffee, Beer, Sun, Moon, CloudRain, Gift, Music, Clock, Lightbulb, Camera, MapPin, Car, Home, Pizza, ShoppingCart, Gamepad2, Tv, Bed, Sparkles, Bomb, Shield, Ban, Pin, Bookmark, AtSign, Video, Phone } from 'lucide-react'
 import { useApp } from '../context/AppContext.jsx'
 import { getSB } from '../lib/supabase.js'
@@ -29,12 +28,11 @@ function extractMention(text) {
 
 function JoinScreen({ nick, setNick, connected, onJoin }) {
   return (
-    <div className="bg-[var(--bg)] h-full flex flex-col">
-      <TopBar active="chat" />
+    <div className="flex flex-col min-h-0 flex-1">
       <div className="flex-1 flex items-center justify-center">
         <div className="flex flex-col gap-4 w-72">
           <div className="text-center">
-            <div className="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center bg-[var(--gold-soft)] border border-[rgba(232,176,75,0.25)]">
+            <div className="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center bg-[var(--gold-soft)] border border-[var(--gold-border)]">
               <MessageCircle size={26} className="text-[var(--gold)]" />
             </div>
             <div className="text-sm text-[var(--text-2)] mt-3">
@@ -216,8 +214,7 @@ export default function ChatPage() {
   if (!joined) return <JoinScreen nick={nick} setNick={setNick} connected={connected} onJoin={join} />
 
   return (
-    <div className="bg-[var(--bg)] flex-1 min-h-0 overflow-hidden flex flex-col">
-      <TopBar active="chat" />
+    <div className="flex flex-col min-h-0 flex-1 overflow-hidden">
       <div className="flex-1 overflow-y-auto scroll-thin px-4 py-3 space-y-2.5 mx-auto max-w-[1080px] w-full">
         {msgs.map((m) => {
           const isMentioned = m.mentioned_user === nick
@@ -235,7 +232,7 @@ export default function ChatPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className={`px-3 py-2.5 rounded-2xl text-sm ${m.user === nick ? 'bg-[var(--gold)] text-[#0A0C10] rounded-br-md' : isMentioned ? 'bg-[var(--surface-2)] text-[var(--text)] rounded-bl-md border-l-2 border-[var(--gold)]' : 'bg-[var(--surface-2)] text-[var(--text)] rounded-bl-md'}`}>{m.text}</div>
+                  <div className={`px-3 py-2.5 rounded-2xl text-sm ${m.user === nick ? 'bg-[var(--gold)] text-[var(--on-gold)] rounded-br-md' : isMentioned ? 'bg-[var(--surface-2)] text-[var(--text)] rounded-bl-md border-l-2 border-[var(--gold)]' : 'bg-[var(--surface-2)] text-[var(--text)] rounded-bl-md'}`}>{m.text}</div>
                 )}
                 <span className="text-[9px] text-[var(--text-3)] mt-0.5 mx-1">{m.time}</span>
               </div>
@@ -253,12 +250,12 @@ export default function ChatPage() {
           className="h-9 w-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-[var(--surface-2)] text-[var(--text-2)] hover:text-[var(--text)] transition-colors"><Video size={15} /></button>
         <input ref={inputRef} className="field flex-1 min-w-0 h-9 py-0" placeholder="输入文字..." value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { send(); setShowEmoji(false); setShowAtList(false) } }} onFocus={() => { setShowEmoji(false); setShowAtList(false) }} />
         <button onClick={() => { send(); setShowEmoji(false); setShowAtList(false) }} disabled={!input.trim()} className="btn-gold h-9 px-3 disabled:opacity-50 flex-shrink-0"><Send size={15} /></button>
-        <button onClick={() => setShowEmoji(!showEmoji)} className={`h-9 w-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${showEmoji ? 'bg-[var(--gold)] text-[#0A0C10]' : 'bg-[var(--surface-2)] text-[var(--text-2)] hover:text-[var(--text)]'}`}><Smile size={15} /></button>
+        <button onClick={() => setShowEmoji(!showEmoji)} className={`h-9 w-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${showEmoji ? 'bg-[var(--gold)] text-[var(--on-gold)]' : 'bg-[var(--surface-2)] text-[var(--text-2)] hover:text-[var(--text)]'}`}><Smile size={15} /></button>
         <button onClick={() => { setShowAtList(!showAtList); setShowEmoji(false) }}
-          className={`h-9 w-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${showAtList ? 'bg-[var(--gold)] text-[#0A0C10]' : 'bg-[var(--surface-2)] text-[var(--text-2)] hover:text-[var(--text)]'}`}><AtSign size={15} /></button>
+          className={`h-9 w-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${showAtList ? 'bg-[var(--gold)] text-[var(--on-gold)]' : 'bg-[var(--surface-2)] text-[var(--text-2)] hover:text-[var(--text)]'}`}><AtSign size={15} /></button>
 
         {showEmoji && (
-          <div className="absolute bottom-12 left-12 panel p-2.5 shadow-2xl z-20">
+          <div className="absolute bottom-12 left-2 panel p-2.5 shadow-2xl z-20">
             <div className="grid grid-cols-8 gap-1">
               {EMOJIS.map((em, i) => { const Icon = em.icon; return <button key={i} onClick={() => { setInput(prev => prev + em.label); setShowEmoji(false) }} className="w-8 h-8 flex items-center justify-center text-[var(--text-2)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] rounded-lg transition-colors" title={em.label}><Icon size={16} /></button> })}
             </div>
@@ -268,7 +265,7 @@ export default function ChatPage() {
         {showAtList && (() => {
           const allUsers = [...new Set([...onlineUsers, ...recentUsers])].filter(u => u !== nick)
           return (
-            <div className="absolute bottom-12 left-[84px] panel p-2 shadow-2xl z-20 min-w-[130px] max-h-[220px] overflow-y-auto scrollbar-hide">
+            <div className="absolute bottom-12 left-2 panel p-2 shadow-2xl z-20 min-w-[130px] max-h-[220px] overflow-y-auto scrollbar-hide">
               <div className="text-[10px] text-[var(--text-3)] mb-1.5 px-1">选择提醒对象</div>
               {allUsers.length === 0 && <div className="text-xs text-[var(--text-3)] px-1 py-2">暂无用户</div>}
               {allUsers.map(u => {

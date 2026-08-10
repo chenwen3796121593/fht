@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import TopBar from '../components/TopBar'
-import { Zap, Send, Loader2, TrendingUp, RefreshCw } from 'lucide-react'
+import { Bot, Send, Loader2, RefreshCw, Sparkles } from 'lucide-react'
 import TabDropdown from '../components/TabDropdown'
 
 // =========== AI 分析面板 ===========
@@ -81,18 +80,11 @@ function AiPanel() {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAnalyze() }
   }
 
-  const examples = [
-    'A股 AI半导体 产业链卡点在哪里？',
-    '沪金 hf_XAU 当前价格怎么看？',
-    '光模块 CPO 产业链，哪些环节最值得研究？',
-    '机器人的核心供应链瓶颈是什么？',
-  ]
-
   return (
     <div className="flex flex-col" style={{ minHeight: '60vh' }}>
       {showPwdInput && (
         <div className="pt-3 pb-2">
-          <div className="panel p-3 flex items-center gap-2 border-[rgba(232,176,75,0.25)]">
+          <div className="panel p-3 flex items-center gap-2 border-[var(--gold-border)]">
             <input
               type="password"
               className="field"
@@ -104,7 +96,6 @@ function AiPanel() {
             <button onClick={savePwd} disabled={!pwd.trim()} className="btn-gold shrink-0 disabled:opacity-40">确认</button>
           </div>
           {pwdErr && <div className="text-[11px] text-[var(--up)] mt-1.5 text-center">{pwdErr}</div>}
-          {!pwdErr && <div className="text-[10px] text-[var(--text-3)] mt-1.5 text-center">AI 深度分析为 VIP 专享，开通 VIP 请联系管理员</div>}
         </div>
       )}
 
@@ -121,12 +112,7 @@ function AiPanel() {
             disabled={loading}
           />
         </div>
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex gap-1.5 flex-wrap">
-            {examples.map((ex, i) => (
-              <button key={i} onClick={() => setQuery(ex)} className="chip text-[10px]">{ex}</button>
-            ))}
-          </div>
+        <div className="flex items-center justify-end gap-2">
           <button
             onClick={handleAnalyze}
             disabled={loading || !query.trim()}
@@ -140,18 +126,12 @@ function AiPanel() {
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto scroll-thin pb-6">
         {error && (
-          <div className="bg-[var(--up-soft)] border border-[rgba(242,85,79,0.3)] rounded-xl p-3 text-sm text-[var(--up)]">{error}</div>
+          <div className="bg-[var(--up-soft)] border border-[var(--up-border)] rounded-xl p-3 text-sm text-[var(--up)]">{error}</div>
         )}
         {response && (
           <div className="panel p-4">
             <div className="text-sm text-[var(--text)] leading-relaxed whitespace-pre-wrap">{response}</div>
             {loading && <span className="inline-block w-2 h-4 bg-[var(--gold)] ml-0.5 animate-pulse rounded-sm align-middle" />}
-          </div>
-        )}
-        {!response && !error && !loading && (
-          <div className="text-center text-[var(--text-3)] text-sm py-12 flex flex-col items-center gap-2">
-            <Zap size={28} className="text-[var(--text-3)]" />
-            <p>输入行业主题或股票代码，<br />AI 用供应链瓶颈框架深度分析</p>
           </div>
         )}
       </div>
@@ -216,7 +196,7 @@ function PredictPanel() {
 
   const Pct = ({ v }) => {
     if (v == null) return <span className="text-[var(--text-3)]">--</span>
-    const c = v > 0 ? '#F2554F' : v < 0 ? '#25C285' : '#98A1AD'
+    const c = v > 0 ? 'var(--up)' : v < 0 ? 'var(--down)' : 'var(--text-3)'
     return <span style={{ color: c }}>{v > 0 ? '+' : ''}{v.toFixed(1)}%</span>
   }
 
@@ -224,8 +204,8 @@ function PredictPanel() {
   const fmtPrice = (v) => typeof v === 'number' ? v.toFixed(2) : (v ?? '--')
 
   const targetColor = (current, target) => {
-    if (!current || !target) return '#98A1AD'
-    return target > current ? '#F2554F' : target < current ? '#25C285' : '#98A1AD'
+    if (!current || !target) return 'var(--text-3)'
+    return target > current ? 'var(--up)' : target < current ? 'var(--down)' : 'var(--text-3)'
   }
 
   const mergePeriods = (rankings, periods) => {
@@ -261,12 +241,11 @@ function PredictPanel() {
     <div className="flex flex-col" style={{ minHeight: '60vh' }}>
       {showPwdInput && (
         <div className="pt-3 pb-2">
-          <div className="panel p-3 flex items-center gap-2 border-[rgba(232,176,75,0.25)]">
+          <div className="panel p-3 flex items-center gap-2 border-[var(--gold-border)]">
             <input type="password" className="field" placeholder="VIP 分析密码" value={pwd} onChange={e => { setPwd(e.target.value); setPwdErr('') }} onKeyDown={e => e.key === 'Enter' && savePwd()} />
             <button onClick={savePwd} disabled={!pwd.trim()} className="btn-gold shrink-0 disabled:opacity-40">确认</button>
           </div>
           {pwdErr && <div className="text-[11px] text-[var(--up)] mt-1.5 text-center">{pwdErr}</div>}
-          {!pwdErr && <div className="text-[10px] text-[var(--text-3)] mt-1.5 text-center">大模型为 VIP 专享，开通 VIP 请联系管理员</div>}
         </div>
       )}
 
@@ -293,7 +272,7 @@ function PredictPanel() {
       </div>
 
       <div className="flex-1 overflow-y-auto scroll-thin" style={{ paddingBottom: '0.5rem' }}>
-        {error && <div className="bg-[var(--up-soft)] border border-[rgba(242,85,79,0.3)] rounded-xl p-3 text-sm text-[var(--up)] mb-2">{error}</div>}
+        {error && <div className="bg-[var(--up-soft)] border border-[var(--up-border)] rounded-xl p-3 text-sm text-[var(--up)] mb-2">{error}</div>}
         {iframeUrl ? (
           <div className="flex flex-col h-full mt-2">
             <div className="flex items-center justify-between mb-1">
@@ -439,7 +418,7 @@ function PredictPanel() {
   )
 }
 
-// =========== 主页面（分析中心）===========
+// =========== 主页面（AI 分析中心）===========
 export default function AlertsPage() {
   const [pane, setPane] = useState('predict')
   const [isWide, setIsWide] = useState(() =>
@@ -454,13 +433,12 @@ export default function AlertsPage() {
   }, [])
 
   return (
-    <div className="bg-[var(--bg)] h-full overflow-y-auto scroll-thin">
-      <TopBar active="alerts" />
-      <div className="px-4 md:px-6">
-        <div className="py-3 md:py-4 flex items-end justify-between fade-up">
+    <div className="page-scroll scroll-thin">
+      <div className="content">
+        <div className="flex items-end justify-between fade-up pt-1">
           <div>
             <div className="eyebrow hidden md:block">Analytics</div>
-            <h1 className="h1 mt-0.5">分析中心</h1>
+            <h1 className="h1 mt-0.5">AI 分析中心</h1>
           </div>
           <div className="hidden xl:flex items-center gap-4 text-[11px] text-[var(--text-3)]">
             <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-[var(--gold)]" />大模型排名</span>
@@ -469,23 +447,23 @@ export default function AlertsPage() {
         </div>
 
         {isWide ? (
-          <div className="grid grid-cols-2 xl:divide-x xl:divide-[var(--border)] pb-8">
+          <div className="grid grid-cols-2 xl:divide-x xl:divide-[var(--border)] pb-2">
             <section className="xl:pr-5">
-              <div className="section-title mb-3"><TrendingUp size={14} className="text-[var(--gold)]" />大模型</div>
+              <div className="section-title mb-3"><Bot size={14} className="text-[var(--gold)]" />大模型</div>
               <PredictPanel />
             </section>
             <section className="xl:pl-5">
-              <div className="section-title mb-3"><Zap size={14} className="text-[var(--gold)]" />AI 深度分析</div>
+              <div className="section-title mb-3"><Sparkles size={14} className="text-[var(--gold)]" />AI 深度分析</div>
               <AiPanel />
             </section>
           </div>
         ) : (
           <>
-            <div className="flex gap-1.5 pt-1 pb-3 sticky top-[57px] md:top-0 bg-[var(--bg)]/90 backdrop-blur z-10 -mx-4 md:-mx-6 px-4 md:px-6">
-              <button onClick={() => setPane('predict')} className={`chip flex-1 justify-center ${pane === 'predict' ? 'chip-active' : ''}`}><TrendingUp size={13} />大模型</button>
-              <button onClick={() => setPane('ai')} className={`chip flex-1 justify-center ${pane === 'ai' ? 'chip-active' : ''}`}><Zap size={13} />AI分析</button>
+            <div className="subtabs">
+              <button onClick={() => setPane('predict')} className={`chip flex-1 justify-center ${pane === 'predict' ? 'chip-active' : ''}`}><Bot size={13} />大模型</button>
+              <button onClick={() => setPane('ai')} className={`chip flex-1 justify-center ${pane === 'ai' ? 'chip-active' : ''}`}><Sparkles size={13} />AI分析</button>
             </div>
-            <div className="pb-8">
+            <div className="pb-2">
               {pane === 'predict' ? <PredictPanel /> : <AiPanel />}
             </div>
           </>

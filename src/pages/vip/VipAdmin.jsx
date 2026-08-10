@@ -39,11 +39,11 @@ export default function VipAdmin({
   }
 
   return (
-    <div className="bg-[var(--bg)] h-full overflow-y-auto scroll-thin mx-auto w-full max-w-[760px] lg:max-w-[920px]">
+    <div className="content-narrow mx-auto w-full">
 
       {/* Strategy editor */}
-      <div className="px-4 md:px-6 pt-4 pb-3">
-        <div className="panel p-4 flex flex-col gap-3 border-[rgba(232,176,75,0.25)]">
+      <div className="pt-4 pb-3">
+        <div className="panel p-4 flex flex-col gap-3 border-[var(--gold-border)]">
           <span className="section-title">今日策略</span>
           <textarea className="field resize-none h-32" placeholder="写下今日交易策略..." value={strategyDraft} onChange={e => setStrategyDraft(e.target.value)} />
           <button onClick={onSave} disabled={savingStrat || !strategyDraft.trim()} className="btn-gold disabled:opacity-40">{savingStrat ? '发布中...' : '发布策略'}</button>
@@ -52,15 +52,15 @@ export default function VipAdmin({
       </div>
 
       {/* Application management */}
-      <div className="px-4 md:px-6 pb-2 flex items-center justify-between">
+      <div className="pb-2 flex items-center justify-between">
         <span className="text-sm font-bold text-[var(--text)]">申请管理</span>
         <button onClick={handleLogout} className="text-xs text-[var(--text-3)] hover:text-[var(--up)] transition-colors">退出</button>
       </div>
-      <div className="px-4 md:px-6 pb-2 flex items-center gap-2">
+      <div className="pb-2 flex items-center gap-2">
         <button onClick={handleRefresh} disabled={loadingApps} className="btn-ghost py-1.5 px-3 text-xs disabled:opacity-40">{loadingApps ? '刷新中...' : '刷新'}</button>
         <span className="text-[10px] text-[var(--text-3)]">{applications.length} 条记录</span>
       </div>
-      <div className="px-4 md:px-6 flex flex-col gap-2 pb-8">
+      <div className="flex flex-col gap-2 pb-8">
         {!loadingApps && applications.length === 0 && <div className="text-center text-[var(--text-3)] text-xs py-6">暂无申请</div>}
         {applications.map(app => (
           <div key={app.id} className="panel p-3.5 flex items-center justify-between">

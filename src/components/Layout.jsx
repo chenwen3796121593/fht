@@ -1,25 +1,27 @@
-import TopBar from './TopBar'
+import Sidebar from './nav/Sidebar'
+import MobileHeader from './nav/MobileHeader'
+import BottomTabs from './nav/BottomTabs'
 import { useApp } from '../context/AppContext.jsx'
 
-// 响应式布局（三档）：手机顶栏 + iPad/电脑侧边栏
-//  < 768px        手机：顶部导航栏 + 单列
-//  ≥768px  (md)  iPad/平板：图标侧边栏 + 双栏内容
-//  ≥1280px (xl)  电脑：更宽侧边栏 + 多栏 + 内容限宽居中
+// AppShell —— 全站唯一渲染导航的地方
+//  <768   手机：48px 品牌条 + 单列内容 + 56px 底部 Tab（含安全区）
+//  ≥768   平板：72px 图标侧栏
+//  ≥1280  桌面：216px 宽侧栏（图标 + 文字 + 底部状态）
+// 只有 .page-scroll 滚动，外壳不滚动 —— 因此底栏无需 position:fixed，
+// 且页面内 sticky 子标签一律 top:0，不再需要 top-[57px] 这类魔法数。
 export default function Layout({ children }) {
-  const { currentPage } = useApp()
+  const { currentPage, navigate } = useApp()
 
   return (
-    <div className="bg-[var(--bg)] min-h-dvh w-full flex">
-      {/* 侧边栏（iPad / 电脑） */}
-      <div className="hidden md:flex w-[var(--sidebar-w)] xl:w-[var(--sidebar-w-lg)] flex-shrink-0">
-        <TopBar active={currentPage} sidebar />
+    <div className="flex h-dvh w-full bg-[var(--bg)] overflow-hidden">
+      <div className="hidden md:block w-[var(--sidebar-w)] shrink-0">
+        <Sidebar active={currentPage} onNavigate={navigate} />
       </div>
 
-      {/* 内容区：限宽居中，避免大屏无限拉伸 */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-dvh">
-        <div className="shell flex-1 flex flex-col min-w-0 min-h-dvh">
-          {children}
-        </div>
+      <div className="flex-1 flex flex-col min-w-0 h-dvh">
+        <MobileHeader />
+        {children}
+        <BottomTabs active={currentPage} onNavigate={navigate} />
       </div>
     </div>
   )

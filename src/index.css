@@ -44,18 +44,54 @@
   --shadow-sm: 0 1px 0 rgba(255,255,255,0.03) inset, 0 4px 14px rgba(0,0,0,0.30);
   --shadow-lg: 0 1px 0 rgba(255,255,255,0.04) inset, 0 24px 60px rgba(0,0,0,0.55);
 
-  /* 布局容器 & 侧边栏宽度 */
-  --content-max: 1600px;
-  --sidebar-w: 72px;
-  --sidebar-w-lg: 88px;
+  /* 金色描边（原先散落 8 处硬编码 rgba(232,176,75,0.25)） */
+  --gold-border: rgba(232, 176, 75, 0.25);
+  --up-border:   rgba(242, 85, 79, 0.30);   /* 红涨描边 */
+  --on-gold: #0A0C10;   /* 金底上的文字色，原硬编码 #0A0C10 ×6 */
+
+  /* ============================================================
+     布局契约（唯一真源）
+     三档断点：手机 <768 / 平板 768–1279 / 桌面 ≥1280
+     页面一律不得再自定义顶栏高度或侧栏宽度。
+     ============================================================ */
+  --topbar-h: 48px;      /* 手机品牌条；md 起归 0 */
+  --bottombar-h: 56px;   /* 手机底部 Tab；md 起归 0 */
+  --sidebar-w: 0px;      /* 手机无侧栏 */
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --gutter: 16px;
+
+  --content-max: 1440px;        /* 数据型页面 */
+  --content-max-narrow: 760px;  /* 阅读型页面（聊天 / 表单） */
+  --tap: 44px;                  /* 最小触控目标 */
 
   /* 排版缩放（专业层级） */
   --fs-display: clamp(22px, 1.7vw, 30px);
   --fs-h1: 18px;
   --fs-h2: 15px;
   --fs-lead: 13px;
+  --fs-body: 13px;
+  --fs-cap: 11px;
 
   color-scheme: dark;
+}
+
+/* 平板：图标侧栏，顶栏/底栏归零 */
+@media (min-width: 768px) {
+  :root {
+    --topbar-h: 0px;
+    --bottombar-h: 0px;
+    --sidebar-w: 72px;
+    --gutter: 24px;
+  }
+}
+
+/* 桌面：宽侧栏带文字，字号整体上抬一档 */
+@media (min-width: 1280px) {
+  :root {
+    --sidebar-w: 216px;
+    --fs-body: 14px;
+    --fs-cap: 12px;
+  }
 }
 
 * { box-sizing: border-box; }
@@ -126,18 +162,18 @@ html { scroll-behavior: smooth; }
 }
 .chip:hover { color: var(--text); background: var(--surface-3); }
 .chip-active {
-  background: var(--gold); color: #0A0C10; border-color: transparent;
+  background: var(--gold); color: var(--on-gold); border-color: transparent;
   box-shadow: 0 4px 14px var(--gold-glow);
 }
-.chip-active:hover { color: #0A0C10; background: var(--gold-bright); }
+.chip-active:hover { color: var(--on-gold); background: var(--gold-bright); }
 /* 次强调态（非金，用于多选项） */
-.chip-soft { color: var(--text); background: var(--gold-soft); border-color: rgba(232,176,75,0.25); }
+.chip-soft { color: var(--text); background: var(--gold-soft); border-color: var(--gold-border); }
 
 /* 主按钮（金） */
 .btn-gold {
   display:inline-flex; align-items:center; justify-content:center; gap:6px;
   padding: 9px 14px; border-radius: var(--radius-sm);
-  background: var(--gold); color: #0A0C10; font-weight: 600; font-size: 13px;
+  background: var(--gold); color: var(--on-gold); font-weight: 600; font-size: 13px;
   border: none; cursor: pointer; transition: all .15s ease;
   box-shadow: 0 6px 18px var(--gold-glow);
 }
@@ -220,11 +256,98 @@ html { scroll-behavior: smooth; }
 @keyframes fade-up { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 .fade-up { animation: fade-up .35s ease both; }
 
-/* 桌面端：内容居中限宽，避免无限拉伸 */
-@media (min-width: 768px) {
-  .shell { padding-left: 0; padding-right: 0; }
+/* ============================================================
+   布局工具类（页面只准用这些，不准自己写 grid-cols-* / 限宽）
+   ============================================================ */
+
+/* 页面滚动容器：顶栏/底栏在它之外，所以内部 sticky 一律 top:0 */
+.page-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
-@media (min-width: 640px) {
-  #root { display: flex; justify-content: center; align-items: flex-start; min-height: 100dvh; }
+/* 页面内容限宽 + 统一内外边距 */
+.content {
+  width: 100%;
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+  padding-block: 12px 20px;
 }
+.content-narrow { max-width: var(--content-max-narrow); }
+@media (min-width: 768px) { .content { padding-block: 16px 24px; } }
+
+/* 吸顶子标签：顶栏已在滚动容器之外，top:0 即可，无需魔法数 */
+.subtabs {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-block: 8px;
+  margin-inline: calc(var(--gutter) * -1);
+  padding-inline: var(--gutter);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(12px);
+  scrollbar-width: none;
+}
+.subtabs::-webkit-scrollbar { display: none; }
+
+/* 指标条：手机横滑吸附，平板 4 列，桌面 7 列 */
+.rail {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  margin-inline: calc(var(--gutter) * -1);
+  padding-inline: var(--gutter);
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+.rail::-webkit-scrollbar { display: none; }
+.rail > * { flex: 0 0 128px; scroll-snap-align: start; }
+@media (min-width: 768px) {
+  .rail {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    overflow: visible;
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+  .rail > * { flex: none; }
+}
+@media (min-width: 1280px) { .rail { grid-template-columns: repeat(7, minmax(0, 1fr)); } }
+
+/* 两列（内容较高，晚一档再分栏）：手机/平板 1 列，桌面 2 列 */
+.g-2 { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+@media (min-width: 1280px) { .g-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* 两列（内容较矮，如 KPI 卡）：手机 1 列，平板起 2 列 */
+.g-2m { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+@media (min-width: 768px) { .g-2m { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* 四列：手机 1 列，平板 2 列，桌面 4 列 */
+.g-4 { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+@media (min-width: 768px) { .g-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1280px) { .g-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+/* KPI：手机 2 列，平板起 4 列 */
+.g-kpi { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (min-width: 768px) { .g-kpi { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+/* 主从：手机上下堆叠，平板起 左固定列 + 右自适应 */
+.g-master { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+@media (min-width: 768px) { .g-master { grid-template-columns: 260px minmax(0, 1fr); gap: 20px; } }
+@media (min-width: 1280px) { .g-master { grid-template-columns: 320px minmax(0, 1fr); } }
+
+/* 触控下限：手机上所有可点元素撑到 44px */
+@media (max-width: 767px) {
+  .tap { min-height: var(--tap); }
+  .chip { padding: 10px 14px; font-size: 12px; }
+}
+
+#root { min-height: 100dvh; }

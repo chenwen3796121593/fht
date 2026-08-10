@@ -1,8 +1,6 @@
 import { useState } from 'react'
-import TopBar from '../components/TopBar'
 import MarketBar from '../components/MarketBar'
 import Watchlist from '../components/Watchlist'
-import StockChart from '../components/StockChart'
 import { useApp } from '../context/AppContext.jsx'
 import { normalizeSymbol } from '../lib/constants.js'
 
@@ -39,9 +37,8 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="bg-[var(--bg)] h-full overflow-y-auto scroll-thin">
-      <TopBar active="dashboard" />
-      <div className="px-4 py-3 md:px-6 md:py-4 flex flex-col gap-3">
+    <div className="page-scroll scroll-thin">
+      <div className="content flex flex-col gap-3">
         <div className="flex items-end justify-between fade-up">
           <div>
             <div className="eyebrow hidden md:block">Watchlist</div>
@@ -54,12 +51,7 @@ export default function Dashboard() {
 
         <MarketBar quotes={quotes} />
 
-        <div className="md:grid md:grid-cols-[260px_minmax(0,1fr)] md:gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
-          <Watchlist embedded selected={selected.symbol} onSelect={handleSelect} prices={prices} customStocks={customStocks} onAddStock={handleAddStock} onRemoveStock={handleRemoveStock} />
-          <div className="mt-3 md:mt-0 pb-8">
-            <StockChart symbol={selected.symbol} name={selected.name} priceData={quotes[selected.symbol] || prices[selected.symbol]} />
-          </div>
-        </div>
+        <Watchlist embedded selected={selected.symbol} onSelect={handleSelect} prices={prices} customStocks={customStocks} onAddStock={handleAddStock} onRemoveStock={handleRemoveStock} />
       </div>
     </div>
   )

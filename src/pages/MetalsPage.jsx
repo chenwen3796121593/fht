@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import TopBar from '../components/TopBar'
 import GoldKline from '../components/GoldKline'
 import { useApp } from '../context/AppContext.jsx'
 
@@ -49,7 +48,7 @@ function VarietyColumn({ rows }) {
   )
 }
 
-export default function MetalsPage({ hideTopBar }) {
+export default function MetalsPage() {
   const { prices } = useApp()
   const [data, setData] = useState(null)
 
@@ -95,29 +94,16 @@ export default function MetalsPage({ hideTopBar }) {
   const visible = rows.filter((r) => r.price != null && r.price !== '--' && r.price !== '')
 
   return (
-    <div className="bg-[var(--bg)] h-full overflow-y-auto scroll-thin">
-      {!hideTopBar && <TopBar active="metals" />}
+    <div className="flex flex-col gap-4">
+      {/* 上栏：伦敦黄金 K 线图 */}
+      <GoldKline priceData={prices.hf_XAU} />
 
-      <div className="px-4 md:px-6 pt-4 flex flex-col gap-4">
-        {/* 上栏：伦敦黄金 K 线图 */}
-        <GoldKline priceData={prices.hf_XAU} />
-
-        {/* 下栏：8 品种行情（单一表格，左名称右价格） */}
-        <div>
-          <div className="section-title mb-3">
-            <span className="text-[var(--gold)]">◆</span> 贵金属行情 · 8 品种
-          </div>
-          <VarietyColumn rows={visible} />
+      {/* 下栏：8 品种行情（单一表格，左名称右价格） */}
+      <div>
+        <div className="section-title mb-3">
+          <span className="text-[var(--gold)]">◆</span> 贵金属行情 · 8 品种
         </div>
-      </div>
-
-      <div className="flex-shrink-0 px-4 md:px-6 flex items-center justify-center gap-8 pb-5 mt-4">
-        <div className="text-[10px] text-[var(--text-2)] leading-relaxed text-center flex flex-col justify-center">
-          <div>扫码添加微信</div>
-          <div>回购黄金/铂金/钯金/银</div>
-          <div>湖南省衡阳市</div>
-        </div>
-        <img src="/qrcode.jpg?v=2" alt="微信二维码" className="w-14 h-14 rounded-xl border border-[var(--border)] object-cover" />
+        <VarietyColumn rows={visible} />
       </div>
     </div>
   )
