@@ -145,11 +145,10 @@ const STOCK_MODELS = [
   { key: 'timesfm', name: 'A股精选(30d)', file: 'timesfm_ranking.json', periods: ['30d','60d','128d'], showCode: false, showTarget: false, showPct: true },
   { key: 'timesfm_full', name: 'A股全量', file: 'timesfm_full_ranking.json', periods: ['30d','60d','128d'], showCode: false, showTarget: false, showPct: true },
 ]
-const COMMODITY_MODELS = [
+const EXTRA_MODELS = [
   { key: 'lightgbm', name: '因子选股', raw: 'https://raw.githubusercontent.com/chenheping1974/khquant/main/results/latest.json', periods: null, isLgbm: true, rows: 30 },
-  { key: 'moirai', name: '大宗商品', file: 'moirai_ranking.json', periods: ['7d','14d','30d','60d','90d'], showCode: false, showTarget: true, showPct: false, transpose: true },
 ]
-const ALL_MODELS = [...STOCK_MODELS, ...COMMODITY_MODELS]
+const ALL_MODELS = [...STOCK_MODELS, ...EXTRA_MODELS]
 const DATA_PROXY = '/api/predict-data'
 
 function PredictPanel() {
@@ -159,7 +158,7 @@ function PredictPanel() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [pwdErr, setPwdErr] = useState('')
-  const [activeModel, setActiveModel] = useState('commodity')
+  const [activeModel, setActiveModel] = useState('kronos')
   const [iframeUrl, setIframeUrl] = useState('')
   const [hfSite, setHfSite] = useState('')
 
@@ -253,13 +252,12 @@ function PredictPanel() {
       <div className="flex flex-col gap-1.5 pt-3">
         <div className="flex gap-1.5 flex-wrap items-center">
           <TabDropdown
-            tabs={[...STOCK_MODELS, ...COMMODITY_MODELS].map(m => ({ key: m.key, label: m.name }))}
+            tabs={[...STOCK_MODELS, ...EXTRA_MODELS].map(m => ({ key: m.key, label: m.name }))}
             active={hfSite ? '' : activeModel}
             onChange={(k) => { setActiveModel(k); setHfSite('') }}
           />
           <TabDropdown
             tabs={[
-              { key: 'timesfm', label: 'TimesFM+Moirai' },
               { key: 'chronos', label: 'Chronos+Kronos' },
             ]}
             active={hfSite}

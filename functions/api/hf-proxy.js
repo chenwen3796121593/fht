@@ -3,8 +3,7 @@ export async function onRequest({ request, env }) {
   const url = new URL(request.url)
   const site = url.searchParams.get('site')
   let target
-  if (site === 'timesfm') target = env.HF_TIMESFM_MOIRAI
-  else if (site === 'chronos') target = env.HF_CHRONOS_KRONOS
+  if (site === 'chronos') target = env.HF_CHRONOS_KRONOS
   if (!target) {
     return new Response(JSON.stringify({ error: 'invalid' }), {
       status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
