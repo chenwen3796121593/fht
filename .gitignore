@@ -25,3 +25,6 @@ dist-ssr
 .claude/
 .workbuddy/
 .wrangler/
+
+# 原始方法论 PDF（本地研究素材，不入库）
+AI Brooks/

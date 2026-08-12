@@ -5,16 +5,18 @@ import TabDropdown from '../components/TabDropdown'
 // =========== AI 分析面板 ===========
 function AiPanel() {
   const [query, setQuery] = useState('')
-  const [response, setResponse] = useState('')
+  const [top, setTop] = useState('')        // 上段：产业链瓶颈分析（原框架，保持不变）
+  const [bottom, setBottom] = useState('')   // 下段：价格结构研判（结构优先研判框架）
+  const [topErr, setTopErr] = useState('')
+  const [bottomErr, setBottomErr] = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
   const [pwdErr, setPwdErr] = useState('')
   const [pwd, setPwd] = useState('')
   const [showPwdInput, setShowPwdInput] = useState(true)
   const scrollRef = useRef(null)
   const inputRef = useRef(null)
 
-  useEffect(() => { scrollRef.current?.scrollTo(0, scrollRef.current.scrollHeight) }, [response])
+  useEffect(() => { scrollRef.current?.scrollTo(0, scrollRef.current.scrollHeight) }, [top, bottom])
 
   const savePwd = async () => {
     if (!pwd.trim()) return
@@ -31,46 +33,50 @@ function AiPanel() {
     if (!query.trim() || loading) return
     if (!pwd) { setShowPwdInput(true); return }
     setLoading(true)
-    setResponse('')
-    setError('')
+    setTop(''); setBottom(''); setTopErr(''); setBottomErr('')
 
     const pwdHash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pwd)).then(buf => Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join(''))
 
-    try {
-      const res = await fetch('/api/ai-analyze', {
+    // 一路 SSE：先把整个流式响应缓存到本地，结束后一次性写入对应分段（非打字机式输出）
+    const streamInto = async (url, setFn) => {
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: query.trim(), pwd: pwdHash }),
       })
-
       if (!res.ok) {
-        const err = await res.json()
+        const err = await res.json().catch(() => ({}))
         throw new Error(err.error || `HTTP ${res.status}`)
       }
-
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
-
+      let acc = ''
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
-
         buffer += decoder.decode(value, { stream: true })
         const lines = buffer.split('\n')
         buffer = lines.pop()
-
         for (const line of lines) {
           if (!line.startsWith('data: ') || line.startsWith('data: [DONE]')) continue
           try {
             const json = JSON.parse(line.slice(6))
             const content = json?.choices?.[0]?.delta?.content
-            if (content) setResponse(prev => prev + content)
+            if (content) acc += content
           } catch {}
         }
       }
-    } catch (e) {
-      setError(e.message)
+      // 完成后再一次性渲染，避免逐字打字机效果
+      setFn(acc)
+    }
+
+    try {
+      // 上段：产业链瓶颈分析（原框架）；下段：价格结构研判（两路并行，互不阻塞）
+      await Promise.allSettled([
+        streamInto('/api/ai-analyze', setTop).catch(e => setTopErr(e.message)),
+        streamInto('/api/ai-equity', setBottom).catch(e => setBottomErr(e.message)),
+      ])
     } finally {
       setLoading(false)
     }
@@ -105,7 +111,7 @@ function AiPanel() {
             ref={inputRef}
             className="field resize-none"
             rows={3}
-            placeholder="输入股票代码、行业主题或投资问题…"
+            placeholder="输入股票名称或代码，将同时给出「产业链瓶颈分析」与「价格结构研判」"
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -125,13 +131,24 @@ function AiPanel() {
       </div>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto scroll-thin pb-6">
-        {error && (
-          <div className="bg-[var(--up-soft)] border border-[var(--up-border)] rounded-xl p-3 text-sm text-[var(--up)]">{error}</div>
+        {(topErr || bottomErr) && (
+          <div className="bg-[var(--up-soft)] border border-[var(--up-border)] rounded-xl p-3 text-sm text-[var(--up)]">
+            {topErr && <div>产业链瓶颈分析：{topErr}</div>}
+            {bottomErr && <div>价格结构研判：{bottomErr}</div>}
+          </div>
         )}
-        {response && (
+        {(top || topErr || loading) && (
           <div className="panel p-4">
-            <div className="text-sm text-[var(--text)] leading-relaxed whitespace-pre-wrap">{response}</div>
-            {loading && <span className="inline-block w-2 h-4 bg-[var(--gold)] ml-0.5 animate-pulse rounded-sm align-middle" />}
+            <div className="text-[11px] font-semibold text-[var(--gold)] mb-2 tracking-wide">上段 · 产业链瓶颈分析</div>
+            <div className="text-sm text-[var(--text)] leading-relaxed whitespace-pre-wrap">{top}</div>
+            {loading && !top && !topErr && <div className="text-sm text-[var(--text-3)]">分析中…</div>}
+          </div>
+        )}
+        {(bottom || bottomErr || loading) && (
+          <div className="panel p-4 mt-3">
+            <div className="text-[11px] font-semibold text-[var(--gold)] mb-2 tracking-wide">下段 · 价格结构研判</div>
+            <div className="text-sm text-[var(--text)] leading-relaxed whitespace-pre-wrap">{bottom}</div>
+            {loading && !bottom && !bottomErr && <div className="text-sm text-[var(--text-3)]">分析中…</div>}
           </div>
         )}
       </div>

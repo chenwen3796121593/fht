@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { createChart, ColorType, CandlestickSeries, HistogramSeries, LineStyle } from 'lightweight-charts'
+import { Loader2 } from 'lucide-react'
 import { getChartTheme } from '../lib/chartTheme.js'
 
 // 各周期用于计算支撑/阻力的回看窗口（根数）
@@ -21,6 +22,15 @@ export default function GoldKline({ priceData }) {
   const [unavailable, setUnavailable] = useState(false)
   const chartRef = useRef(null)
   const containerRef = useRef(null)
+
+  // AI 图表研判 状态
+  const [chartUnlocked, setChartUnlocked] = useState(false)
+  const [chartShowPwd, setChartShowPwd] = useState(false)
+  const [chartPwd, setChartPwd] = useState('')
+  const [chartPwdErr, setChartPwdErr] = useState('')
+  const [chartReport, setChartReport] = useState('')
+  const [chartLoading, setChartLoading] = useState(false)
+  const [chartErr, setChartErr] = useState('')
 
   useEffect(() => {
     let cancelled = false
@@ -159,6 +169,64 @@ export default function GoldKline({ priceData }) {
 
   const up = (priceData?.change || 0) >= 0
 
+  // =========== AI 图表研判 ===========
+  const sha256 = (s) => crypto.subtle.digest('SHA-256', new TextEncoder().encode(s))
+    .then(buf => Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join(''))
+
+  const runChartRead = async () => {
+    if (chartLoading) return
+    setChartLoading(true); setChartReport(''); setChartErr('')
+    const hash = await sha256(chartPwd)
+    try {
+      const res = await fetch('/api/ai-chart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pwd: hash }),
+      })
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}))
+        throw new Error(e.error || `HTTP ${res.status}`)
+      }
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buf = ''
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buf += decoder.decode(value, { stream: true })
+        const lines = buf.split('\n')
+        buf = lines.pop()
+        for (const line of lines) {
+          if (!line.startsWith('data: ') || line.startsWith('data: [DONE]')) continue
+          try {
+            const j = JSON.parse(line.slice(6))
+            const c = j?.choices?.[0]?.delta?.content
+            if (c) setChartReport(prev => prev + c)
+          } catch {}
+        }
+      }
+    } catch (e) {
+      setChartErr(e.message)
+    } finally {
+      setChartLoading(false)
+    }
+  }
+
+  const verifyChartPwd = async () => {
+    if (!chartPwd.trim()) return
+    const hash = await sha256(chartPwd)
+    try {
+      const res = await fetch('/api/verify-pwd', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hash }) })
+      if (res.ok) { setChartUnlocked(true); setChartShowPwd(false); setChartPwdErr(''); runChartRead() }
+      else setChartPwdErr('密码错误，请重试')
+    } catch { setChartPwdErr('验证失败，请重试') }
+  }
+
+  const onChartRead = () => {
+    if (chartUnlocked) runChartRead()
+    else setChartShowPwd(true)
+  }
+
   return (
     <div className="panel p-3.5">
       <div className="flex items-start justify-between mb-3">
@@ -179,12 +247,27 @@ export default function GoldKline({ priceData }) {
         </div>
       </div>
 
-      <div className="flex gap-1.5 mb-3 flex-wrap">
+      <div className="flex gap-1.5 mb-3 flex-wrap items-center">
         {PERIODS.map((p) => (
           <button key={p.key} onClick={() => setPeriod(p.key)}
             className={`chip ${period === p.key ? 'chip-active' : ''}`}>{p.label}</button>
         ))}
+        <button onClick={onChartRead}
+          className={`chip ${chartUnlocked ? 'chip-active' : ''} ml-auto`}>
+          AI 读图
+        </button>
       </div>
+
+      {chartShowPwd && (
+        <div className="flex items-center gap-2 mb-3">
+          <input type="password" value={chartPwd} onChange={(e) => setChartPwd(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && verifyChartPwd()}
+            placeholder="请输入分析密码"
+            className="field flex-1" />
+          <button onClick={verifyChartPwd} className="btn-gold shrink-0">确认</button>
+          {chartPwdErr && <span className="text-[11px] text-[var(--up)]">{chartPwdErr}</span>}
+        </div>
+      )}
 
       {loading && (
         <div className="w-full flex items-center justify-center rounded-lg" style={{ height: 280, background: theme.bg }}>
@@ -214,6 +297,24 @@ export default function GoldKline({ priceData }) {
               <span className="num font-medium" style={{ color: l.color }}>{l.price.toFixed(1)}</span>
             </div>
           ))}
+        </div>
+      )}
+
+      {chartLoading && (
+        <div className="mt-3 text-[12px] text-[var(--text-3)] flex items-center gap-2">
+          <Loader2 size={14} className="animate-spin" /> 正在生成图表研判…
+        </div>
+      )}
+      {chartErr && <div className="mt-3 text-[12px] text-[var(--up)]">{chartErr}</div>}
+      {chartReport && (
+        <div className="panel p-4 mt-3">
+          <div className="text-[11px] text-[var(--gold)] mb-2 flex items-center gap-1.5">
+            <span className="w-1 h-1 rounded-full bg-[var(--gold)]" /> AI 图表研判
+          </div>
+          <div className="text-[13px] text-[var(--text)] leading-relaxed whitespace-pre-wrap">
+            {chartReport}
+            {chartLoading && <span className="inline-block w-2 h-4 bg-[var(--gold)] ml-0.5 animate-pulse rounded-sm align-middle" />}
+          </div>
         </div>
       )}
     </div>
