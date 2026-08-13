@@ -1,6 +1,37 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { Bot, Send, Loader2, RefreshCw, Sparkles } from 'lucide-react'
 import TabDropdown from '../components/TabDropdown'
+
+// 极简定论卡片：解析报告首行【定论】，与黄金页同逻辑
+function extractVerdict(text) {
+  const m = (text || '').match(/【定论】([^\n]*)/)
+  if (!m) return null
+  const body = m[1].trim()
+  if (!body) return null
+  const parts = body.split('|').map(s => s.trim())
+  const dir = parts[0] || ''
+  let tone = 'neutral'
+  if (dir.includes('偏多') || dir.includes('看多') || dir.includes('做多')) tone = 'up'
+  else if (dir.includes('偏空') || dir.includes('看空') || dir.includes('做空')) tone = 'down'
+  return { dir, strategy: parts[1] || '', levels: parts[2] || '', tone }
+}
+const stripVerdict = (text) => (text || '').replace(/^【定论】[^\n]*\n?/, '')
+
+function VerdictCard({ v }) {
+  if (!v) return null
+  const c = v.tone === 'up' ? 'var(--up)' : v.tone === 'down' ? 'var(--down)' : 'var(--gold)'
+  const soft = v.tone === 'up' ? 'var(--up-soft)' : v.tone === 'down' ? 'var(--down-soft)' : 'var(--gold-soft)'
+  return (
+    <div className="panel p-3.5 mb-3" style={{ borderLeft: `3px solid ${c}` }}>
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-[12px] font-bold px-2 py-0.5 rounded" style={{ background: soft, color: c }}>{v.dir}</span>
+        <span className="text-[10px] text-[var(--text-3)]">极简定论 · 仅供参考</span>
+      </div>
+      <div className="text-[14px] font-semibold text-[var(--text)] leading-snug">{v.strategy}</div>
+      {v.levels && <div className="text-[12px] text-[var(--text-2)] num mt-1.5 tracking-tight">{v.levels}</div>}
+    </div>
+  )
+}
 
 // =========== AI 分析面板 ===========
 function AiPanel() {
@@ -15,6 +46,12 @@ function AiPanel() {
   const [showPwdInput, setShowPwdInput] = useState(true)
   const scrollRef = useRef(null)
   const inputRef = useRef(null)
+
+  // 极简定论卡片（解析两段报告首行【定论】）；正文去掉该行避免重复
+  const topVerdict = useMemo(() => extractVerdict(top), [top])
+  const bottomVerdict = useMemo(() => extractVerdict(bottom), [bottom])
+  const topBody = useMemo(() => stripVerdict(top), [top])
+  const bottomBody = useMemo(() => stripVerdict(bottom), [bottom])
 
   useEffect(() => { scrollRef.current?.scrollTo(0, scrollRef.current.scrollHeight) }, [top, bottom])
 
@@ -140,14 +177,16 @@ function AiPanel() {
         {(top || topErr || loading) && (
           <div className="panel p-4">
             <div className="text-[11px] font-semibold text-[var(--gold)] mb-2 tracking-wide">上段 · 产业链瓶颈分析</div>
-            <div className="text-sm text-[var(--text)] leading-relaxed whitespace-pre-wrap">{top}</div>
+            <VerdictCard v={topVerdict} />
+            <div className="text-sm text-[var(--text)] leading-relaxed whitespace-pre-wrap">{topBody}</div>
             {loading && !top && !topErr && <div className="text-sm text-[var(--text-3)]">分析中…</div>}
           </div>
         )}
         {(bottom || bottomErr || loading) && (
           <div className="panel p-4 mt-3">
             <div className="text-[11px] font-semibold text-[var(--gold)] mb-2 tracking-wide">下段 · 价格结构研判</div>
-            <div className="text-sm text-[var(--text)] leading-relaxed whitespace-pre-wrap">{bottom}</div>
+            <VerdictCard v={bottomVerdict} />
+            <div className="text-sm text-[var(--text)] leading-relaxed whitespace-pre-wrap">{bottomBody}</div>
             {loading && !bottom && !bottomErr && <div className="text-sm text-[var(--text-3)]">分析中…</div>}
           </div>
         )}

@@ -14,6 +14,20 @@ const PERIODS = [
   { label: '月线', key: 'm' },
 ]
 
+// 从流式报告中解析「【定论】」首行，渲染成极简定论卡片
+function extractVerdict(text) {
+  const m = text.match(/【定论】([^\n]*)/)
+  if (!m) return null
+  const body = m[1].trim()
+  if (!body) return null
+  const parts = body.split('|').map((s) => s.trim())
+  const dir = parts[0] || ''
+  let tone = 'neutral'
+  if (dir.includes('偏多') || dir.includes('看多') || dir.includes('做多')) tone = 'up'
+  else if (dir.includes('偏空') || dir.includes('看空') || dir.includes('做空')) tone = 'down'
+  return { dir, strategy: parts[1] || '', levels: parts[2] || '', tone }
+}
+
 export default function GoldKline({ priceData }) {
   const theme = useMemo(() => getChartTheme(), [])
   const [period, setPeriod] = useState('d')
@@ -227,6 +241,10 @@ export default function GoldKline({ priceData }) {
     else setChartShowPwd(true)
   }
 
+  // 极简定论卡片（从报告首行【定论】解析）；长文则去掉该行后展示
+  const chartVerdict = useMemo(() => extractVerdict(chartReport), [chartReport])
+  const chartBody = useMemo(() => chartReport.replace(/^【定论】[^\n]*\n?/, ''), [chartReport])
+
   return (
     <div className="panel p-3.5">
       <div className="flex items-start justify-between mb-3">
@@ -306,13 +324,34 @@ export default function GoldKline({ priceData }) {
         </div>
       )}
       {chartErr && <div className="mt-3 text-[12px] text-[var(--up)]">{chartErr}</div>}
-      {chartReport && (
+
+      {/* 极简定论卡片：一眼看懂的方向与策略，置于大段分析之前 */}
+      {chartVerdict && (
+        <div className="panel p-3.5 mt-3" style={{
+          borderLeft: `3px solid ${chartVerdict.tone === 'up' ? 'var(--up)' : chartVerdict.tone === 'down' ? 'var(--down)' : 'var(--gold)'}`,
+        }}>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[12px] font-bold px-2 py-0.5 rounded"
+              style={{
+                background: chartVerdict.tone === 'up' ? 'var(--up-soft)' : chartVerdict.tone === 'down' ? 'var(--down-soft)' : 'var(--gold-soft)',
+                color: chartVerdict.tone === 'up' ? 'var(--up)' : chartVerdict.tone === 'down' ? 'var(--down)' : 'var(--gold)',
+              }}>{chartVerdict.dir}</span>
+            <span className="text-[10px] text-[var(--text-3)]">极简定论 · 仅供参考</span>
+          </div>
+          <div className="text-[14px] font-semibold text-[var(--text)] leading-snug">{chartVerdict.strategy}</div>
+          {chartVerdict.levels && (
+            <div className="text-[12px] text-[var(--text-2)] num mt-1.5 tracking-tight">{chartVerdict.levels}</div>
+          )}
+        </div>
+      )}
+
+      {chartBody && (
         <div className="panel p-4 mt-3">
           <div className="text-[11px] text-[var(--gold)] mb-2 flex items-center gap-1.5">
             <span className="w-1 h-1 rounded-full bg-[var(--gold)]" /> AI 图表研判
           </div>
           <div className="text-[13px] text-[var(--text)] leading-relaxed whitespace-pre-wrap">
-            {chartReport}
+            {chartBody}
             {chartLoading && <span className="inline-block w-2 h-4 bg-[var(--gold)] ml-0.5 animate-pulse rounded-sm align-middle" />}
           </div>
         </div>
